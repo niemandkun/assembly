@@ -45,7 +45,7 @@ factorial:
         push    bp
         mov     bp, sp
 
-        mov     cx, [bp+4]  ; load argument into ax
+        mov     cx, [bp+4]  ; load argument into cx
 
         test    cx, cx
         jnz     @@1         ; if argument is zero

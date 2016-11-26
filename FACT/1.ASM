@@ -34,9 +34,9 @@ factorial:
         jz      @@exit
 
         xchg    ax, bx
-        mul     cx          ; multipli bx
+        mul     cx          ; multipli most sign part
         xchg    ax, bx
-        mul     cx          ; multiply ax
+        mul     cx          ; multiply less sign part
         add     bx, dx
 
         dec     cx
