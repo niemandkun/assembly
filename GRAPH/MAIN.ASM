@@ -156,10 +156,7 @@ draw_plot:
     fld     qword ptr [func_step]
     ; push the most left argument of the function
     fld     qword ptr [func_left]
-    ; TODO: calculate this number dynamically
-    mov     cx, 2500
 @@1:
-    push    cx
     fld     st(0)
     fsin                        ; calculate actual function
     fdiv    st(0), st(1)
@@ -174,12 +171,12 @@ draw_plot:
     mov     bx, word ptr [func_res]
     add     ax, vga_height/2        ; shift to the center of the screen
     add     bx, vga_width/2
+    mov     di, bx
     mov     cl, plot_color
     call    put_pixel
     fadd    st(0), st(1)            ; add calc_step to arg
-    pop     cx
-    dec     cx
-    ja      @@1
+    cmp     di, vga_width
+    jbe     @@1
     ret
 
 end start
