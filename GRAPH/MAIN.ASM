@@ -7,14 +7,12 @@ include vga.asm
 .data
 
 func_step       dq  0.02
-func_left       dq  -25.0
-func_right      dq  25.0
-func_top        dq  -1.5
-func_bottom     dq  1.5
-func_res        dw  0
+func_start      dq  -20.0
 
-viewport_width  dq  320.0
-viewport_height dq  200.0
+x_scale         dq  8.0
+y_scale         dq  50.0
+
+func_res        dw  0
 
 axes_color = 05h
 plot_color = 03h
@@ -113,49 +111,39 @@ draw_plot:
 
     ; in this procedure FPU stack is operating as follows:
     ;
-    ; +-------------------+
-    ; |   x_aspect_ratio  | 4
-    ; +-------------------+
-    ; |   y_aspect_ratio  | 3
-    ; +-------------------+
-    ; |     calc_step     | 2
-    ; +-------------------+
-    ; |        arg        | 1
-    ; +-------------------+
-    ; |        res        | 0
-    ; +-------------------+
+    ; +---------------------+
+    ; |       x_scale       | 4
+    ; +---------------------+
+    ; |       y_scale       | 3
+    ; +---------------------+
+    ; |      calc_step      | 2
+    ; +---------------------+
+    ; |         arg         | 1
+    ; +---------------------+
+    ; |         res         | 0
+    ; +---------------------+
     ;
     ; Algorithm:
-    ;   calculate aspect ratio on st3 and st4:
-    ;       aspect := viewport / (func_max - func_min)
+    ;
+    ;   st4 := x_scale
+    ;   st3 := y_scale
     ;   st2 := calc_step
-    ;   st1 := first_arg
+    ;   st1 := arg
     ;   while is not calculated:
-    ;       st0 := arg
+    ;       st0 := st1
     ;       st0 := sin(st0)
-    ;       st0 /= arg
-    ;       st0 *= y_aspect_ratio
+    ;       st0 /= st1
+    ;       st0 *= y_scale
     ;       pop st0
     ;       st0 := arg
-    ;       st0 *= x_aspect_ratio
+    ;       st0 *= x_scale
     ;       pop st0
+    ;       st1 += calc_step
 
-    ; calculate horizontal (x) aspect ratio
-    fld     qword ptr [viewport_width]
-    fld     qword ptr [func_right]
-    fld     qword ptr [func_left]
-    fsubp
-    fdivp
-    ; calculate vertical (y) aspect ratio
-    fld     qword ptr [viewport_height]
-    fld     qword ptr [func_top]
-    fld     qword ptr [func_bottom]
-    fsubp
-    fdivp
-    ; push calculation step
+    fld     qword ptr [x_scale]
+    fld     qword ptr [y_scale]
     fld     qword ptr [func_step]
-    ; push the most left argument of the function
-    fld     qword ptr [func_left]
+    fld     qword ptr [func_start]
 @@1:
     fld     st(0)
     fsin                        ; calculate actual function
@@ -164,6 +152,7 @@ draw_plot:
     fmul    st(0), st(3)            ; apply vertical aspect ratio
     fistp   word ptr [func_res]
     mov     ax, word ptr [func_res]
+    neg     ax
     ; pop arg
     fld     st(0)
     fmul    st(0), st(4)            ; apply horizontal aspect ratio
