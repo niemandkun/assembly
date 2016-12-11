@@ -16,3 +16,5 @@ endm
 
 vga_width = 320
 vga_height = 200
+char_width = 8
+char_height = 8

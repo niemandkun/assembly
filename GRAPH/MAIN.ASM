@@ -30,6 +30,7 @@ start:
     call    draw_oy_dashes
     mov     cl, plot_color
     call    draw_plot
+    call    reset_cursor
     ret
 
 put_pixel:
@@ -45,11 +46,58 @@ put_pixel:
     cmp     bx, vga_width
     jge     @@1
 
-    mov     dx, vga_width
+    mov     dx, vga_width       ; calculate address in a memory
     mul     dx
     add     bx, ax
     mov     [es:bx], cl         ; set value in the video memory
 @@1:
+    ret
+
+reset_cursor:
+    mov     dh, 0               ; set cursor to upper left corner
+    mov     dl, 0
+    call    set_cursor
+    ret
+
+set_cursor_vga:
+    ; set cursor position in mode 13h
+    ; ax: y coordinate, bx: x coordinate
+    push    cx
+    push    dx
+
+    xor     dx, dx              ; calculate row
+    mov     cx, char_height
+    div     cx
+    xchg    bx, ax
+    mov     bh, bl              ; store row in bh
+
+    mov     cx, char_width      ; calculate column
+    div     cx
+
+    mov     bl, al              ; store column in bl
+    mov     dx, bx              ; mov dl, bl; mov dh, bh
+    call    set_cursor
+
+    pop     dx
+    pop     cx
+
+    ret
+
+set_cursor:
+    ; set cursor position
+    ; dh: row, dl: column
+    mov     ah, 02h
+    xor     bh, bh
+    int     10h
+    ret
+
+put_char:
+    ; put char on the screen
+    ; ch: char, cl: color
+    mov     ah, 0eh
+    mov     al, ch
+    mov     bl, cl
+    int     10h
     ret
 
 draw_ox:
@@ -61,6 +109,13 @@ draw_ox:
     call    put_pixel
     dec     si                      ; cycle over all x coordinates
     jge     @@1
+
+    mov     dl, 37                  ; print 'x' at 11 row, 37 column
+    mov     dh, 11
+    call    set_cursor
+    mov     ch, 'x'
+    call    put_char
+
     ret
 
 draw_oy:
@@ -72,27 +127,81 @@ draw_oy:
     call    put_pixel
     dec     di                      ; cycle over all y coordinates
     jge     @@1
+
+    mov     dl, 21                  ; print 'y' at 1 row, 21 column
+    mov     dh, 1
+    call    set_cursor
+    mov     ch, 'y'
+    call    put_char
+
     ret
 
 draw_oy_dashes:
     ;si: x, di: y
-    mov     di, vga_height
+
+    ;; draw upper dashes
+    mov     di, vga_height / 2 - 25         ; di - rows
+    mov     ch, 1 + 30h                     ; si - columns
 @@1:
-    mov     si, (vga_width - dashes_width) / 2
+    mov     si, (vga_width - dashes_width) / 2  ; si - const
 @@2:
+    mov     ax, di              ; while di > 0 draw dashes
+    mov     bx, si
+    call    put_pixel           ; while drawing dash
+    inc     si                  ; iterate over x coordinate
+    cmp     si, (vga_width + dashes_width) / 2
+    jle     @@2
+
+    mov     ax, di              ; create text under the dash
+    mov     bx, si              ; ch - current number charcode
+    sub     bx, 16
+    call    set_cursor_vga
+    call    put_char
+    inc     ch
+
+    sub     di, 25              ; iterate over rows (di)
+    jg      @@1                 ; implicit compare di with zero
+
+    ;; draw bottom dashes
+    mov     di, vga_height / 2 + 25     ; same thing but now upside-down
+    mov     ch, 1 + 30h                 ; iterate over rows
+@@3:
+    mov     si, (vga_width - dashes_width) / 2
+@@4:
     mov     ax, di
     mov     bx, si
     call    put_pixel
     inc     si
     cmp     si, (vga_width + dashes_width) / 2
-    jle     @@2
-    sub     di, 20
-    jg      @@1
+    jle     @@4
+
+    mov     ax, di          ; draw current character
+    mov     bx, si
+    add     bx, 16
+    call    set_cursor_vga
+    call    put_char
+    inc     ch
+
+    push    cx              ; remember current character
+    mov     ax, di          ; because we wanna draw a minus sign
+    mov     bx, si
+    add     bx, 8
+    mov     ch, '-'
+    call    set_cursor_vga
+    call    put_char
+    pop     cx
+
+    add     di, 25
+    cmp     di, vga_height
+    jl      @@3
     ret
 
 draw_ox_dashes:
     ;si: x, di: y
-    mov     si, vga_width
+
+    ;; draw right dashes
+    mov     si, vga_width / 2 + 8*5     ; same thing again for Ox
+    mov     ch, 1 + 30h                 ; iterate over columns
 @@1:
     mov     di, (vga_height - dashes_width) / 2
 @@2:
@@ -102,8 +211,50 @@ draw_ox_dashes:
     inc     di
     cmp     di, (vga_height + dashes_width) / 2
     jle     @@2
-    sub     si, 20
-    jg      @@1
+
+    mov     ax, di          ; ax - row
+    mov     bx, si          ; bx - column
+    add     ax, 10
+    call    set_cursor_vga
+    call    put_char
+    inc     ch
+
+    add     si, 8*5
+    cmp     si, vga_width
+    jl      @@1
+
+    ;; draw left dashes
+    mov     si, vga_width / 2 - 8*5
+    mov     ch, 1 + 30h
+@@3:
+    mov     di, (vga_height - dashes_width) / 2
+@@4:
+    mov     ax, di
+    mov     bx, si
+    call    put_pixel
+    inc     di
+    cmp     di, (vga_height + dashes_width) / 2
+    jle     @@4
+
+    mov     ax, di
+    mov     bx, si
+    sub     ax, 10
+    call    set_cursor_vga
+    call    put_char
+    inc     ch
+
+    push    cx
+    mov     ax, di
+    mov     bx, si
+    sub     ax, 10
+    sub     bx, 8
+    call    set_cursor_vga
+    mov     ch, '-'
+    call    put_char
+    pop     cx
+
+    sub     si, 8*5
+    jg      @@3
     ret
 
 draw_plot:
