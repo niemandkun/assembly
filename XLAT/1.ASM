@@ -14,13 +14,13 @@ start:
 loop_start:
     lodsb
 
-    mov     bx, offset alphabet
-    xlat    ; get in-alphabet code of character in al
+    lea     bx, [alphabet]
+    xlat    ; load in-alphabet code of character in al
 
     mov     di, dx
     shl     di, 1
     mov     bx, word ptr [states+di]
-    xlat    ; get next state in al
+    xlat    ; load next state in al
 
     mov     dl, al
 
@@ -31,11 +31,11 @@ loop_start:
     jne     mismatch
 
 match:
-    mov     dx, offset message_match
+    lea     dx, [message_match]
     jmp     print
 
 mismatch:
-    mov     dx, offset message_mismatch
+    lea     dx, [message_mismatch]
 
 print:
     mov     al, 0
@@ -74,23 +74,23 @@ alphabet:   db  32  dup(0)
 
 ; alphabet size is 12
 
-state0:     db  5 dup(0),   01h,    6 dup(0)  ; h, initial state
-state1:     db 11 dup(0),   02h               ; y
-state2:     db  2 dup(0),   03h,    9 dup(0)  ; d
-state3:     db  9 dup(0),   04h,    2 dup(0)  ; r
-state4:     db  8 dup(0),   05h,    3 dup(0)  ; o
-state5:     db  4 dup(0),   06h,    7 dup(0)  ; g
-state6:     db  3 dup(0),   07h,    8 dup(0)  ; e
-state7:     db  7 dup(0),   08h,    4 dup(0)  ; n
-state8:     db  0,          09h,   10 dup(0)  ; space
-state9:     db  2 dup(0),   0Ah,    9 dup(0)  ; d
-stateA:     db  6 dup(0),   0Bh,    5 dup(0)  ; i
-stateB:     db  8 dup(0),   0Ch,    3 dup(0)  ; o
-stateC:     db 10 dup(0),   0Dh,    0         ; x
-stateD:     db  6 dup(0),   0Eh,    5 dup(0)  ; i
-stateE:     db  2 dup(0),   0Fh,    9 dup(0)  ; d
-stateF:     db  3 dup(0),   10h,    8 dup(0)  ; e
-state10:    db 12 dup(10h)                    ; match
+state0:     db  5 dup(0),   01h,    6 dup(0)                            ; h
+state1:     db  5 dup(0),   01h,    5 dup(0),   02h                     ; y
+state2:     db  2 dup(0),   03h,    2 dup(0),   01h,        6 dup(0)    ; d
+state3:     db  5 dup(0),   01h,    3 dup(0),   04h,        2 dup(0)    ; r
+state4:     db  5 dup(0),   01h,    2 dup(0),   05h,        3 dup(0)    ; o
+state5:     db  4 dup(0),   06h,    01h,        7 dup(0)                ; g
+state6:     db  3 dup(0),   07h,    0,          01h,        6 dup(0)    ; e
+state7:     db  5 dup(0),   01h,    0,   08h,   4 dup(0)                ; n
+state8:     db  0,          09h,    3 dup(0),   01h,        6 dup(0)    ; _
+state9:     db  2 dup(0),   0Ah,    2 dup(0),   01h,        6 dup(0)    ; d
+stateA:     db  5 dup(0),   01h,    0Bh,        5 dup(0)                ; i
+stateB:     db  5 dup(0),   01h,    2 dup(0),   0Ch,        3 dup(0)    ; o
+stateC:     db  5 dup(0),   01h,    4 dup(0),   0Dh,        0           ; x
+stateD:     db  5 dup(0),   01h,    0Eh,        5 dup(0)                ; i
+stateE:     db  2 dup(0),   0Fh,    2 dup(0),   01h,        6 dup(0)    ; d
+stateF:     db  3 dup(0),   10h,    0,          01h,        6 dup(0)    ; e
+state10:    db 12 dup(10h)                                              ; :^)
 
 states:     dw  state0, state1, state2, state3, state4, state5,\
                 state6, state7, state8, state9, stateA, stateB,\
