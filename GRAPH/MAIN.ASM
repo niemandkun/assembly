@@ -14,7 +14,8 @@ y_scale         dq  50.0
 
 func_res        dw  0
 
-axes_color = 05h
+axes_color = 07h
+text_color = 07h
 plot_color = 03h
 dashes_width = 4
 
@@ -26,11 +27,19 @@ start:
     mov     cl, axes_color
     call    draw_ox
     call    draw_oy
+    mov     cl, text_color
     call    draw_ox_dashes
     call    draw_oy_dashes
     mov     cl, plot_color
     call    draw_plot
     call    reset_cursor
+    call    get_char
+    init_text_mode
+    ret
+
+get_char:
+    mov     ah, 07h
+    int     21h
     ret
 
 put_pixel:
