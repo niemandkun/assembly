@@ -1,3 +1,9 @@
+vga_width = 320
+vga_height = 200
+char_width = 8
+char_height = 8
+
+
 init_vga_mode macro
     mov     ax, 13h     ; AH=0 - Change video mode
     int     10h         ; AL=13h - Mode
@@ -75,8 +81,3 @@ endif
     mov     ah, 0eh
     int     10h
 endm
-
-vga_width = 320
-vga_height = 200
-char_width = 8
-char_height = 8
