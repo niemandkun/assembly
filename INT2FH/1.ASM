@@ -14,31 +14,26 @@ start:
 
 ; ## Data #####################################################################
 
-secret_token db "8d95a5534f77ae09b4b4f80e7cc67f73", 00h
-next_handler_segment dw 0
-next_handler_offset dw 0
-my_id dw 0
+unique_token db "eb54674b-ddcd-5344-8ecd-422bc122450e", 00h    ; Version 5 UUID
+
+old_handler_ptr dd ?
+my_id db ?
 
 ; ## Entry ####################################################################
 
 tsr_entry:
-        push    dx
-        push    bx
-        mov     bx, cs:[my_id]  ; check, that resident was called
-        cmp     ah, bh
+        cmp     ah, cs:[my_id]          ; check, that this resident was called
         jne     tsr_refuse              ; call next handler in chain if not
-        mov     dx, cs
-        mov     es, dx                  ; generate response:
-        lea     di, [secret_token]      ; es:di - secret token
-        mov     al, 0FFh                ; al - "Hey, I'm here!"
-        pop     bx
-        pop     dx
+        push    ax
+        mov     ax, cs
+        mov     es, ax                  ; return pointer to unique token
+        lea     di, [unique_token]      ; in es:di
+        pop     ax
+        mov     al, 0FFh                ; "Hey, I'm here!"
         iret
 
 tsr_refuse:     ; call next handler in chain
-        mov     bx, cs:[next_handler_offset]
-        mov     es, cs:[next_handler_segment]
-        jmp     es:bx
+        jmp     [old_handler_ptr]
 
 tsr_code_end:
 
@@ -51,7 +46,7 @@ tsr_init:
         call    select_free_id
         test    ax, ax
         jz      no_free_id_error
-        mov     cs:[my_id], ax
+        mov     cs:[my_id], ah
         call    set_interrupt_vector
         call    install_tsr
 
@@ -74,17 +69,17 @@ tsr_error_finish:
 find_installed_tsr:
         ; checks if tsr from this file was already installed earlier
         ; returns: ax = ID if already installed, ax = 0 otherwise
-        lea     si, [secret_token]
+        lea     si, [unique_token]
         mov     cx, 0FFh
 @@check_loop:
         xor     ax, ax
-        xor     di, di              ; expecting secret token address in di
+        xor     di, di              ; expecting unique token address in di
         mov     ah, cl
         int     multiplex_interrupt_no
         test    di, di              ; if di is empty, skip cmpstr
         jz      @@check_loop_end
         mov     bx, ax              ; remember called ID
-        call    strcmp              ; else need to compare secret tokens
+        call    strcmp              ; else need to compare tokens
         test    ax, ax
         jnz     @@check_loop_end    ; if tokens are not equal, continue
         mov     ax, bx              ; else return called ID
@@ -113,18 +108,18 @@ select_free_id:
 
 
 set_interrupt_vector:
-        mov     bx, 0
-        mov     es, bx                          ; segment of interrupt vector table
+        xor     bx, bx
+        mov     es, bx
         mov     bx, multiplex_interrupt_no
-        mov     cx, 2
-        shl     bx, cl                          ; calculate interrupt vector offset
+        shl     bx, 1
+        shl     bx, 1                           ; es:bx - address of old vector
         mov     dx, es:[bx]
-        mov     cs:[next_handler_offset], dx
+        mov     word ptr cs:[old_handler_ptr], dx
         lea     dx, [tsr_entry]
-        mov     es:[bx], dx
+        mov     word ptr es:[bx], dx
         add     bx, 2
         mov     dx, es:[bx]
-        mov     cs:[next_handler_segment], dx
+        mov     word ptr cs:[old_handler_ptr+2], dx
         mov     es:[bx], cs
         ret
 
