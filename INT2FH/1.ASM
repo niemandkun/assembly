@@ -33,7 +33,7 @@ tsr_entry:
         iret
 
 tsr_refuse:     ; call next handler in chain
-        jmp     [old_handler_ptr]
+        jmp     cs:[old_handler_ptr]
 
 tsr_code_end:
 
