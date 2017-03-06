@@ -108,19 +108,15 @@ select_free_id:
 
 
 set_interrupt_vector:
-        xor     bx, bx
-        mov     es, bx
-        mov     bx, multiplex_interrupt_no
-        shl     bx, 1
-        shl     bx, 1                           ; es:bx - address of old vector
-        mov     dx, es:[bx]
-        mov     word ptr cs:[old_handler_ptr], dx
+        mov     ah, 35h
+        mov     al, multiplex_interrupt_no
+        int     21h                             ; get int vector in es:bx
+        mov     word ptr cs:[old_handler_ptr], bx
+        mov     word ptr cs:[old_handler_ptr+2], es
         lea     dx, [tsr_entry]
-        mov     word ptr es:[bx], dx
-        add     bx, 2
-        mov     dx, es:[bx]
-        mov     word ptr cs:[old_handler_ptr+2], dx
-        mov     es:[bx], cs
+        mov     ah, 25h
+        mov     al, multiplex_interrupt_no
+        int     21h                             ; set int vector to ds:dx
         ret
 
 
