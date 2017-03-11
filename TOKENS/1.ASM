@@ -114,7 +114,7 @@ additionalArgsMessage:
     db "Additional command line args are expected", 0Ah, 24h
 
 helpMsg:
-    db 0Ah, 0Ah
+    db 0Ah
     db "Install resident and delete it if possible", 0Ah
     db 0Ah
     db "Parameters:", 0Ah
@@ -129,5 +129,8 @@ helpMsg:
     db 0Ah
     db "/? - show this help message and exit", 0Ah
     db 24h
+
+usage:
+    db "Usage: %PROGRAM NAME% [/?] [/R (21 | 27)] [/D (GENTLE | HARD)]", 0Ah, 24h
 
 end start

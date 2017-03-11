@@ -1,5 +1,3 @@
-usage db "Usage: %PROGRAM NAME% [/?] [/R (21 | 27)] [/D (GENTLE | HARD)]", 24h
-
 residentFlag db "/R", 00h
 residentFlagLength = $ - residentFlag
 
