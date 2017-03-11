@@ -9,6 +9,15 @@ sizeOfToken = 4
 
 tokensCount dw ?
 tokens Token 64 dup(<>)
+tokensExclusiveEndPtr dw ?
+
+
+include lexeme.asm
+
+
+lexemesCount = acceptableLexemesCount
+lexemes dw lexemesCount dup(0)
+
 
 parseArgs proc c near uses ax dx
         arg @@argvPtr:word, @@argc:word
@@ -25,10 +34,16 @@ parseArgs proc c near uses ax dx
         add     sp, 2 + 2
 
         mov     [tokensCount], ax
+        mov     cx, sizeOfToken     ; cx - size of element
+        mul     cx
 
-        push    ax
+        lea     dx, [tokens]
+        add     ax, dx
+        mov     [tokensExclusiveEndPtr], ax
+
         call    unescapeAndTerminate
-        add     sp, 2
+
+        call    matchLexemes
 
         ret
 
@@ -36,15 +51,10 @@ parseArgs endp
 
 
 unescapeAndTerminate proc c near uses ax bx cx dx
-        arg @@tokensCount:word
 
-        mov     ax, [@@tokensCount]
-        mov     cx, sizeOfToken     ; cx - size of element
-        mul     cx
-
-        lea     dx, [tokens]
-        add     ax, dx              ; ax - begin ptr
-        xchg    ax, dx              ; dx - end ptr
+        mov     cx, sizeOfToken             ; cx - size of element
+        lea     ax, [tokens]                ; ax - begin ptr
+        mov     dx, [tokensExclusiveEndPtr] ; dx - end ptr
 
 @@foreachLoop:
         push    ax
@@ -235,7 +245,7 @@ terminateToken proc c near uses ax bx cx
         mov     bx, [bx].@ptr
         add     bx, ax
 
-        mov     byte ptr [bx], 24h
+        mov     byte ptr [bx], 00h
 
         ret
 

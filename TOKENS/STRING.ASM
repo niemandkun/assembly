@@ -71,3 +71,58 @@ strUnescape proc c near uses si di bx cx
         ret
 
 strUnescape endp
+
+
+strCompare proc c near uses si di cx
+        arg @@first:word, @@second:word
+        ; compare two zero terminated strings
+        ; returns: ax = 0 if strings are equal, 1 otherwise
+
+        mov     si, [@@first]
+        mov     di, [@@second]
+
+        push    si
+        call    strLength
+        add     sp, 2
+        mov     cx, ax
+
+@@compareLoop:
+        cmpsb
+        jne     @@compareFail
+        dec     cx
+        jnz     @@compareLoop
+        xor     ax, ax
+        jmp     @@return
+
+@@compareFail:
+        mov     ax, 1
+
+@@return:
+        ret
+
+strCompare endp
+
+
+strLength proc c near uses si cx
+        arg @@string:word
+        ; calculate a length of the zero terminated string
+        ; returns: ax = length of the given string
+
+        mov     si, [@@string]
+        xor     cx, cx
+
+@@lengthLoop:
+        lodsw
+        test    al, al
+        jz      @@finish
+        inc     cx
+        test    ah, ah
+        jz      @@finish
+        inc     cx
+        jmp     @@lengthLoop
+
+@@finish:
+        mov     ax, cx
+        ret
+
+strLength endp

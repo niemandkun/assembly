@@ -10,6 +10,9 @@ argvPtr = argcPtr + 1
         org     100h
 
 start:
+        lea     ax, [lexemes]
+        mov     ax, acceptableLexemesLength
+
         xor     dx, dx
         mov     dl, cs:[argcPtr]
         push    dx
@@ -18,10 +21,7 @@ start:
         push    dx
 
         call    parseArgs
-
         add     sp, 2 + 2
-
-        call    debugPrint
 
         int     20h
 
@@ -66,18 +66,9 @@ include string.asm
 include print.asm
 
 
-aFlag Token <flag, flagLen>
-helpFlag Token <help, helpLen>
 
-flag db "/a"
-flagLen = $ - flag
 
-help db "/?"
-helpLen = $ - help
+usage db "usage: program [/?] [resident (21 | 27)] [delete (gentle | hard)]", 24h
 
-lexemes dw aFlag, helpFlag
-lexemesLen = $ - lexemes
-
-usage db "usage: program [/A] [/B] [/C] [/?]", 24h
 
 end start
