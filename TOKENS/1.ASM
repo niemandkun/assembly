@@ -10,9 +10,6 @@ argvPtr = argcPtr + 1
         org     100h
 
 start:
-        lea     ax, [lexemes]
-        mov     ax, acceptableLexemesLength
-
         xor     dx, dx
         mov     dl, cs:[argcPtr]
         push    dx
@@ -23,41 +20,79 @@ start:
         call    parseArgs
         add     sp, 2 + 2
 
+handleArgs:
+        mov     bx, [help]
+        test    bx, bx
+        jnz     showHelp
+
+        mov     bx, [resident]
+        test    bx, bx
+        jnz     makeResident
+
+        mov     bx, [delete]
+        test    bx, bx
+        jnz     deleteResident
+
+        jmp     ambiguousCallError
+
+makeResident:
+        lea     dx, [residentMsg]
+        mov     ah, 09h
+        int     21h
         int     20h
 
+residentMsg db "Make resident", 0Ah, 24h
 
-debugPrint proc c near uses
+deleteResident:
+        lea     dx, [deleteMsg]
+        mov     ah, 09h
+        int     21h
+        int     20h
 
-        mov     ax, [tokensCount]
+deleteMsg db "Delete resident", 0Ah, 24h
 
-        push    ax
-        call    printWord
 
-        mov     ax, newLine
-        push    ax
-        call    putChar
-        add     sp, 2 + 2
+showHelp:
+        mov     ah, 09h
+        lea     dx, [usage]
+        int     21h
+        lea     dx, [helpMsg]
+        int     21h
+        int     20h
 
-        mov     ax, [tokensCount]
-        mov     cx, sizeOfToken     ; cx - size of element
-        mul     cx
+helpMsg:
+    db 0Ah, 0Ah
+    db "Install resident and delete it if possible", 0Ah
+    db 0Ah
+    db "Parameters:", 0Ah
+    db 0Ah
+    db "/R - terminate and stay resident, listening to int 2Fh", 0Ah
+    db "        27 - using int 27h", 0Ah
+    db "        21 - using function 31h of int 21h", 0Ah
+    db 0Ah
+    db "/D - delete resident", 0Ah
+    db "        GENTLE - delete only if possible", 0Ah
+    db "        HARD - forced delete", 0Ah
+    db 0Ah
+    db "/? - show this help message and exit", 0Ah
+    db 24h
 
-        lea     dx, [tokens]        ; dx - begin ptr
-        add     ax, dx              ; ax - end ptr
 
-@@foreachLoop:
-        push    dx
-        call    printToken
-        pop     dx
+ambiguousCallError:
 
-        add     dx, cx
-        cmp     dx, ax
-        jb      @@foreachLoop
+        lea     dx, [ambiguousCallMessage]
+        mov     ah, 09h
+        int     21h
 
-        ret
+        lea     dx, [usage]
+        int     21h
 
-debugPrint endp
+        jmp     exit
 
+ambiguousCallMessage db "Ambiguous call: you should use only one top-level parameter", 0Ah, 24h
+
+exit:
+        int     20h
 
 include token.asm
 
@@ -66,9 +101,5 @@ include lexeme.asm
 include string.asm
 
 include print.asm
-
-
-usage db "usage: program [/?] [resident (21 | 27)] [delete (gentle | hard)]", 24h
-
 
 end start

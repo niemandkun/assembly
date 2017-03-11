@@ -1,10 +1,12 @@
-upperCaseZ = "Z" ;5Ah
-upperCaseA = "A" ;41h
+upperCaseZ = "Z"
+upperCaseA = "A"
 lowerCaseA = "a"
+lowerCaseZ = "z"
 space = " "
 backSlash = "\"
 
 toLowerDelta = lowerCaseA - upperCaseA
+toUpperDelta = -toLowerDelta
 
 strToLower proc c near uses ax cx si di
         arg @@strPtr:word, @@strLength:word
@@ -35,6 +37,37 @@ strToLower proc c near uses ax cx si di
         ret
 
 strToLower endp
+
+
+strToUpper proc c near uses ax cx si di
+        arg @@strPtr:word, @@strLength:word
+
+        mov     cx, [@@strLength]
+        mov     si, [@@strPtr]
+        mov     di, [@@strPtr]
+
+@@startLoop:
+        lodsb
+
+        cmp     al, lowerCaseZ
+        ja      @@isNotLetter
+        cmp     al, lowerCaseA
+        jb      @@isNotLetter
+
+        add     al, toUpperDelta
+        stosb
+        jmp     @@endLoop
+
+@@isNotLetter:
+        inc     di
+
+@@endLoop:
+        dec     cx
+        jg      @@startLoop
+
+        ret
+
+strToUpper endp
 
 
 strUnescape proc c near uses si di bx cx

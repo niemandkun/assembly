@@ -1,28 +1,23 @@
-resident = 0
-residentFlag db "resident", 00h
+usage db "Usage: %PROGRAM NAME% [/?] [/R (21 | 27)] [/D (GENTLE | HARD)]", 24h
+
+residentFlag db "/R", 00h
 residentFlagLength = $ - residentFlag
 
-int21 = 1
 int21Flag db "21", 00h
 int21FlagLength = $ - int21Flag
 
-int27 = 2
 int27Flag db "27", 00h
 int27FlagLength = $ - int27Flag
 
-delete = 3
-deleteFlag db "delete", 00h
+deleteFlag db "/D", 00h
 deleteFlagLength = $ - deleteFlag
 
-gentle = 4
-gentleFlag db "gentle", 00h
+gentleFlag db "GENTLE", 00h
 gentleFlagLength = $ - gentleFlag
 
-hard = 5
-hardFlag db "hard", 00h
+hardFlag db "HARD", 00h
 hardFlagLength = $ - hardFlag
 
-help = 6
 helpFlag db "/?", 00h
 helpFlagLength = $ - helpFlag
 
@@ -38,9 +33,15 @@ acceptableLexemes:
 
 acceptableLexemesLength = $ - acceptableLexemes
 
+lexemes:
+    resident    dw ?
+    int21       dw ?
+    int27       dw ?
+    delete      dw ?
+    gentle      dw ?
+    hard        dw ?
+    help        dw ?
 
-lexemesCount = 7
-lexemes dw lexemesCount dup(0)
 lexemesExclusiveEndPtr = $
 
 matchLexemes proc c near uses ax bx cx si di
@@ -138,6 +139,14 @@ validateTokens proc c near uses
         push    dx
         call    strPrint
         add     sp, 2
+
+        mov     dx, 0Ah
+        mov     ah, 02h
+        int     21h
+
+        lea     dx, [usage]
+        mov     ah, 09h
+        int     21h
 
         int     20h
 

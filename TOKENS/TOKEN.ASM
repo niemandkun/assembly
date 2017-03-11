@@ -22,7 +22,7 @@ parseArgs proc c near uses ax dx
         mov     dx, [@@argvPtr]
         push    dx
 
-        call    strToLower
+        call    strToUpper
         call    splitTokens
         add     sp, 2 + 2
 
