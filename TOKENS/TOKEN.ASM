@@ -17,6 +17,10 @@ parseArgs proc c near uses ax dx
         ; returns: count of tokens in ax, pointer to tokens in bx
 
         mov     dx, [@@argc]
+
+        test    dx, dx
+        jz      @@finish
+
         push    dx
 
         mov     dx, [@@argvPtr]
@@ -40,6 +44,7 @@ parseArgs proc c near uses ax dx
 
         call    validateTokens
 
+@@finish:
         ret
 
 parseArgs endp

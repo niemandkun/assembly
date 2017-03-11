@@ -34,13 +34,13 @@ acceptableLexemes:
 acceptableLexemesLength = $ - acceptableLexemes
 
 lexemes:
-    resident    dw ?
-    int21       dw ?
-    int27       dw ?
-    delete      dw ?
-    gentle      dw ?
-    hard        dw ?
-    help        dw ?
+    resident    dw 0
+    int21       dw 0
+    int27       dw 0
+    delete      dw 0
+    gentle      dw 0
+    hard        dw 0
+    help        dw 0
 
 lexemesExclusiveEndPtr = $
 
