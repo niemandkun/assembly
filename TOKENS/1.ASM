@@ -23,8 +23,11 @@ start:
         call    splitTokens
         add     sp, 2 * 2
 
-        int     20h
+        push    ax
+        call    unescapeAndTerminate
+        add     sp, 2
 
+        int     20h
 
 String struc
     @ptr dw ?
@@ -32,7 +35,10 @@ String struc
 String ends
 
 
+stringDecl:
 aFlag String <flag, flagLen>
+sizeOfString = $ - stringDecl
+
 helpFlag String <help, helpLen>
 
 flag db "/a"
@@ -47,6 +53,52 @@ lexemesLen = $ - lexemes
 tokens String 64 dup(<>)
 
 usage db "usage: program [/A] [/B] [/C] [/?]", 24h
+
+
+unescapeAndTerminate proc c near uses ax bx cx dx
+        arg @@tokensCount:word
+
+        mov     ax, [@@tokensCount]
+        mov     cx, sizeOfString    ; cx - size of element
+        mul     cx
+
+        lea     dx, [tokens]
+        add     ax, dx              ; ax - begin ptr
+        xchg    ax, dx              ; dx - end ptr
+
+@@foreachLoop:
+        push    ax
+        call    unescapeToken
+        call    terminateToken
+        call    printToken
+        pop     ax
+
+        add     ax, cx
+        cmp     ax, dx
+        jb      @@foreachLoop
+
+        ret
+
+unescapeAndTerminate endp
+
+
+foreach proc c near uses dx
+        arg @@funcPtr:word, @@beginPtr:word, @@sizeOfElement:word, @@endPtr:word
+
+        mov     dx, [@@beginPtr]
+
+@@foreachLoop:
+        push    dx
+        call    [@@funcPtr]
+        add     sp, 2
+
+        add     dx, [@@sizeOfElement]
+        cmp     dx, [@@endPtr]
+        jb      @@foreachLoop
+
+        ret
+
+foreach endp
 
 
 splitTokens proc c near
@@ -75,17 +127,15 @@ splitTokens proc c near
 
 @@singleQuote:
         cmp     al, 27h
-        jne     @@doubleQuote
-
-        inc     si
-        push    ax
-        jmp     @@readToken
+        je      @@quote
 
 @@doubleQuote:
         cmp     al, 22h
         jne     @@space
 
+@@quote:
         inc     si
+        dec     cx
         push    ax
         jmp     @@readToken
 
@@ -196,6 +246,60 @@ readToken proc c near uses bx cx dx si
 readToken endp
 
 
+unescapeToken proc c near uses bx dx
+        arg @@tokenPtr:word
+
+        mov     bx, [@@tokenPtr]
+
+        mov     dx, [bx].@length
+        push    dx
+
+        mov     dx, [bx].@ptr
+        push    dx
+
+        call    strUnescape
+
+        add     sp, 2 * 2
+        mov     word ptr [bx].@length, ax
+        ret
+
+unescapeToken endp
+
+
+terminateToken proc c near uses ax bx cx
+        arg @@tokenPtr:word
+
+        mov     bx, [@@tokenPtr]
+
+        mov     ax, [bx].@length
+        mov     bx, [bx].@ptr
+        add     bx, ax
+
+        mov     byte ptr [bx], 24h
+
+        ret
+
+terminateToken endp
+
+
+printToken proc c near uses ax bx dx
+        arg @@tokenPtr:word
+
+        mov     bx, [@@tokenPtr]
+
+        mov     dx, [bx].@ptr
+        mov     ah, 09h
+        int     21h
+
+        mov     dl, 0Ah
+        mov     ah, 02h
+        int     21h
+
+        ret
+
+printToken endp
+
+
 strToLower proc c near uses ax cx si di
         arg @@strPtr:word, @@strLength:word
 
@@ -225,6 +329,42 @@ strToLower proc c near uses ax cx si di
         ret
 
 strToLower endp
+
+
+strUnescape proc c near uses si di bx cx
+        arg @@strPtr:word, @@strLength:word
+
+        mov     si, [@@strPtr]
+        mov     di, si
+        mov     cx, [@@strLength]
+        xor     bx, bx      ; unescaped string length
+        xor     dl, dl      ; escaped flag
+
+@@unescapeLoop:
+        lodsb
+        cmp     al, 5Ch
+        jne     @@isNotEscape
+
+        test    dl, dl
+        jnz     @@isNotEscape
+
+        mov     dl, 1
+        jmp     @@continue
+
+
+@@isNotEscape:
+        xor     dl, dl
+        inc     bx
+        stosb
+
+@@continue:
+        dec     cx
+        jg      @@unescapeLoop
+
+        mov     ax, bx
+        ret
+
+strUnescape endp
 
 
 printSegmentOffset proc c near uses dx
