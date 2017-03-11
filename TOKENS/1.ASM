@@ -29,17 +29,19 @@ start:
 
         int     20h
 
-String struc
+Token struc
     @ptr dw ?
     @length dw ?
-String ends
+Token ends
 
 
-stringDecl:
-aFlag String <flag, flagLen>
-sizeOfString = $ - stringDecl
+tokenDecl:
 
-helpFlag String <help, helpLen>
+aFlag Token <flag, flagLen>
+
+sizeOfToken = $ - tokenDecl
+
+helpFlag Token <help, helpLen>
 
 flag db "/a"
 flagLen = $ - flag
@@ -50,7 +52,7 @@ helpLen = $ - help
 lexemes dw aFlag, helpFlag
 lexemesLen = $ - lexemes
 
-tokens String 64 dup(<>)
+tokens Token 64 dup(<>)
 
 usage db "usage: program [/A] [/B] [/C] [/?]", 24h
 
@@ -59,7 +61,7 @@ unescapeAndTerminate proc c near uses ax bx cx dx
         arg @@tokensCount:word
 
         mov     ax, [@@tokensCount]
-        mov     cx, sizeOfString    ; cx - size of element
+        mov     cx, sizeOfToken    ; cx - size of element
         mul     cx
 
         lea     dx, [tokens]
