@@ -7,10 +7,10 @@ Token ends
 sizeOfToken = 4
 
 
+tokensCount dw ?
 tokens Token 64 dup(<>)
 
-
-parseArgs proc c near uses dx
+parseArgs proc c near uses ax dx
         arg @@argvPtr:word, @@argc:word
         ; returns: count of tokens in ax, pointer to tokens in bx
 
@@ -24,10 +24,11 @@ parseArgs proc c near uses dx
         call    splitTokens
         add     sp, 2 + 2
 
+        mov     [tokensCount], ax
+
         push    ax
         call    unescapeAndTerminate
-        pop     ax
-        lea     bx, [tokens]
+        add     sp, 2
 
         ret
 
@@ -49,7 +50,6 @@ unescapeAndTerminate proc c near uses ax bx cx dx
         push    ax
         call    unescapeToken
         call    terminateToken
-        call    printToken
         pop     ax
 
         add     ax, cx

@@ -1,3 +1,7 @@
+colon = 3Ah
+newLine = 0Ah
+
+
 printSegmentOffset proc c near uses dx
         arg @@segmentAddress:word, @@offset:word
 
@@ -6,7 +10,7 @@ printSegmentOffset proc c near uses dx
         call    printWord
         pop     dx
 
-        mov     dx, 3Ah     ; ":"
+        mov     dx, colon
         push    dx
         call    putChar
         pop     dx
@@ -16,7 +20,7 @@ printSegmentOffset proc c near uses dx
         call    printWord
         pop     dx
 
-        mov     dx, 20h     ; "\n"
+        mov     dx, newLine
         push    dx
         call    putChar
         pop     dx
