@@ -61,11 +61,11 @@ debugPrint endp
 
 include token.asm
 
+include lexeme.asm
+
 include string.asm
 
 include print.asm
-
-
 
 
 usage db "usage: program [/?] [resident (21 | 27)] [delete (gentle | hard)]", 24h

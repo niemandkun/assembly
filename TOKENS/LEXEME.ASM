@@ -1,23 +1,31 @@
+resident = 0
 residentFlag db "resident", 00h
 residentFlagLength = $ - residentFlag
 
+int21 = 1
 int21Flag db "21", 00h
 int21FlagLength = $ - int21Flag
 
+int27 = 2
 int27Flag db "27", 00h
 int27FlagLength = $ - int27Flag
 
+delete = 3
 deleteFlag db "delete", 00h
 deleteFlagLength = $ - deleteFlag
 
+gentle = 4
 gentleFlag db "gentle", 00h
 gentleFlagLength = $ - gentleFlag
 
+hard = 5
 hardFlag db "hard", 00h
 hardFlagLength = $ - hardFlag
 
+help = 6
 helpFlag db "/?", 00h
 helpFlagLength = $ - helpFlag
+
 
 acceptableLexemes:
     Token <residentFlag, residentFlagLength>
@@ -29,8 +37,11 @@ acceptableLexemes:
     Token <helpFlag, helpFlagLength>
 
 acceptableLexemesLength = $ - acceptableLexemes
-acceptableLexemesCount = 7
 
+
+lexemesCount = 7
+lexemes dw lexemesCount dup(0)
+lexemesExclusiveEndPtr = $
 
 matchLexemes proc c near uses ax bx cx si di
 
@@ -71,18 +82,24 @@ matchSingleLexeme proc c near uses bx dx si di
         mov     dx, [tokensExclusiveEndPtr]
 
 @@compareLoop:
+        mov     di, [bx].@length
+
+        test    di, di
+        jz      @@continue
+
         mov     di, [bx].@ptr
         push    di
         call    strCompare
         add     sp, 2
 
         test    ax, ax
-        jnz     @@compareFails
+        jnz     @@continue
 
         mov     ax, bx
+        mov     word ptr [bx].@length, 0h
         jmp     @@finish
 
-@@compareFails:
+@@continue:
         add     bx, sizeOfToken
         cmp     bx, dx
         jl      @@compareLoop
@@ -94,3 +111,39 @@ matchSingleLexeme proc c near uses bx dx si di
         ret
 
 matchSingleLexeme endp
+
+
+validateTokens proc c near uses
+
+        lea     si, [tokens]
+        lea     di, [tokensExclusiveEndPtr]
+
+@@checkLoop:
+        mov     bx, [si].@length
+        test    bx, bx
+        jnz     @@invalidArgsError
+
+        add     si, sizeOfToken
+        cmp     si, di
+        jne     @@checkLoop
+
+        jmp     @@finish
+
+@@invalidArgsError:
+        lea     dx, [@@invalidArgsMessage]
+        mov     ah, 09h
+        int     21h
+
+        mov     dx, [si].@ptr
+        push    dx
+        call    strPrint
+        add     sp, 2
+
+        int     20h
+
+@@invalidArgsMessage db "Invalid parameter: ", 24h
+
+@@finish:
+        ret
+
+validateTokens endp

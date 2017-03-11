@@ -86,6 +86,12 @@ strCompare proc c near uses si di cx
         add     sp, 2
         mov     cx, ax
 
+        push    di
+        call    strLength
+        add     sp, 2
+        cmp     cx, ax
+        jne     @@compareFail
+
 @@compareLoop:
         cmpsb
         jne     @@compareFail
@@ -126,3 +132,27 @@ strLength proc c near uses si cx
         ret
 
 strLength endp
+
+
+strPrint proc c near uses ax bx dx
+        ; print zero terminated string
+        arg @@string:word
+
+        mov     dx, [@@string]
+
+        push    dx
+        call    strLength
+        add     sp, 2
+
+        mov     bx, dx
+        add     bx, ax
+
+        mov     byte ptr [bx], 24h
+        mov     ah, 09h
+        int     21h
+
+        mov     byte ptr [bx], 00h
+
+        ret
+
+strPrint endp

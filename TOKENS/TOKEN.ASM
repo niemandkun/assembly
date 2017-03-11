@@ -12,13 +12,6 @@ tokens Token 64 dup(<>)
 tokensExclusiveEndPtr dw ?
 
 
-include lexeme.asm
-
-
-lexemesCount = acceptableLexemesCount
-lexemes dw lexemesCount dup(0)
-
-
 parseArgs proc c near uses ax dx
         arg @@argvPtr:word, @@argc:word
         ; returns: count of tokens in ax, pointer to tokens in bx
@@ -44,6 +37,8 @@ parseArgs proc c near uses ax dx
         call    unescapeAndTerminate
 
         call    matchLexemes
+
+        call    validateTokens
 
         ret
 
