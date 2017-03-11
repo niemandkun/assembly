@@ -1,5 +1,6 @@
 .model tiny
 locals
+.386
 
 ; constants:
 
@@ -21,10 +22,6 @@ start:
         add     sp, 2 + 2
 
 handleArgs:
-        mov     bx, [help]
-        test    bx, bx
-        jnz     showHelp
-
         mov     bx, [resident]
         test    bx, bx
         jnz     makeResident
@@ -33,9 +30,74 @@ handleArgs:
         test    bx, bx
         jnz     deleteResident
 
-        jmp     ambiguousCallError
+        mov     bx, [help]
+        test    bx, bx
+        jnz     showHelp
+
+noTopLevelArgsError:
+        lea     dx, [noTopLevelArgsMessage]
+        jmp     errorEnd
+
+ambiguousCallError:
+        lea     dx, [ambiguousCallMessage]
+        jmp     errorEnd
+
+invalidArgsError:
+        lea     dx, [invalidArgsMessage]
+        jmp     errorEnd
+
+additionalArgsError:
+        lea     dx, [additionalArgsMessage]
+
+errorEnd:
+        mov     ah, 09h
+        int     21h
+        lea     dx, [usage]
+        int     21h
+        int     20h
+
+conflict macro first, other, handler
+        mov     ax, [first]
+    irp xx, other
+        add     ax, [xx]
+    endm
+        cmp     ax, [first]
+        jne     handler
+endm
+
+
+required macro first, other, handler
+        mov     ax, [first]
+    irp xx, other
+        add     ax, [xx]
+    endm
+        cmp     ax, [first]
+        je      handler
+endm
+
 
 makeResident:
+        conflict resident, <help,delete>, ambiguousCallError
+        conflict resident, <gentle,hard>, invalidArgsError
+
+        mov     ax, bx          ; check conflicted parameters
+        add     ax, [help]
+        add     ax, [delete]
+        cmp     ax, bx
+        jne     ambiguousCallError
+
+        mov     ax, bx
+        add     ax, [gentle]
+        add     ax, [hard]
+        cmp     ax, bx
+        jne     invalidArgsError
+
+        xor     ax, ax
+        add     ax, [int21]
+        add     ax, [int27]
+        test    ax, ax
+        jz      additionalArgsError
+
         lea     dx, [residentMsg]
         mov     ah, 09h
         int     21h
@@ -44,6 +106,24 @@ makeResident:
 residentMsg db "Make resident", 0Ah, 24h
 
 deleteResident:
+        mov     ax, bx
+        add     ax, [help]
+        add     ax, [resident]
+        cmp     ax, bx
+        jne     ambiguousCallError
+
+        mov     ax, bx
+        add     ax, [int21]
+        add     ax, [int27]
+        cmp     ax, bx
+        jne     invalidArgsError
+
+        xor     ax, ax
+        add     ax, [gentle]
+        add     ax, [hard]
+        test    ax, ax
+        jz      additionalArgsError
+
         lea     dx, [deleteMsg]
         mov     ah, 09h
         int     21h
@@ -51,14 +131,49 @@ deleteResident:
 
 deleteMsg db "Delete resident", 0Ah, 24h
 
-
 showHelp:
+        mov     ax, bx
+        add     ax, [delete]
+        add     ax, [resident]
+        cmp     ax, bx
+        jne     ambiguousCallError
+
+        mov     ax, bx
+        add     ax, [int21]
+        add     ax, [int27]
+        add     ax, [gentle]
+        add     ax, [hard]
+        cmp     ax, bx
+        jne     invalidArgsError
+
         mov     ah, 09h
         lea     dx, [usage]
         int     21h
         lea     dx, [helpMsg]
         int     21h
         int     20h
+
+
+include token.asm
+
+include lexeme.asm
+
+include string.asm
+
+include print.asm
+
+
+noTopLevelArgsMessage:
+    db "Any top level parameter is required", 0Ah, 24h
+
+ambiguousCallMessage:
+    db "Ambiguous call: you should use only one top-level parameter", 0Ah, 24h
+
+invalidArgsMessage:
+    db "Command contains invalid parameters", 0Ah, 24h
+
+additionalArgsMessage:
+    db "Additional command line args are expected", 0Ah, 24h
 
 helpMsg:
     db 0Ah, 0Ah
@@ -76,30 +191,5 @@ helpMsg:
     db 0Ah
     db "/? - show this help message and exit", 0Ah
     db 24h
-
-
-ambiguousCallError:
-
-        lea     dx, [ambiguousCallMessage]
-        mov     ah, 09h
-        int     21h
-
-        lea     dx, [usage]
-        int     21h
-
-        jmp     exit
-
-ambiguousCallMessage db "Ambiguous call: you should use only one top-level parameter", 0Ah, 24h
-
-exit:
-        int     20h
-
-include token.asm
-
-include lexeme.asm
-
-include string.asm
-
-include print.asm
 
 end start
