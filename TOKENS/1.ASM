@@ -2,6 +2,8 @@
 locals
 .386
 
+include macros.asm
+
 ; constants:
 
 argcPtr = 80h
@@ -11,6 +13,8 @@ argvPtr = argcPtr + 1
         org     100h
 
 start:
+        lea     ax, [lexemes]
+
         xor     dx, dx
         mov     dl, cs:[argcPtr]
         push    dx
@@ -22,6 +26,13 @@ start:
         add     sp, 2 + 2
 
 handleArgs:
+        conflicting <help, resident, delete>, ambiguousCallError
+        conflicting <help, delete, int21, int27>, invalidArgsError
+        conflicting <help, resident, gentle, hard>, invalidArgsError
+
+        requiring resident, <int21, int27>, additionalArgsError
+        requiring delete, <gentle, hard>, additionalArgsError
+
         mov     bx, [resident]
         test    bx, bx
         jnz     makeResident
@@ -56,48 +67,7 @@ errorEnd:
         int     21h
         int     20h
 
-conflict macro first, other, handler
-        mov     ax, [first]
-    irp xx, other
-        add     ax, [xx]
-    endm
-        cmp     ax, [first]
-        jne     handler
-endm
-
-
-required macro first, other, handler
-        mov     ax, [first]
-    irp xx, other
-        add     ax, [xx]
-    endm
-        cmp     ax, [first]
-        je      handler
-endm
-
-
 makeResident:
-        conflict resident, <help,delete>, ambiguousCallError
-        conflict resident, <gentle,hard>, invalidArgsError
-
-        mov     ax, bx          ; check conflicted parameters
-        add     ax, [help]
-        add     ax, [delete]
-        cmp     ax, bx
-        jne     ambiguousCallError
-
-        mov     ax, bx
-        add     ax, [gentle]
-        add     ax, [hard]
-        cmp     ax, bx
-        jne     invalidArgsError
-
-        xor     ax, ax
-        add     ax, [int21]
-        add     ax, [int27]
-        test    ax, ax
-        jz      additionalArgsError
-
         lea     dx, [residentMsg]
         mov     ah, 09h
         int     21h
@@ -106,24 +76,6 @@ makeResident:
 residentMsg db "Make resident", 0Ah, 24h
 
 deleteResident:
-        mov     ax, bx
-        add     ax, [help]
-        add     ax, [resident]
-        cmp     ax, bx
-        jne     ambiguousCallError
-
-        mov     ax, bx
-        add     ax, [int21]
-        add     ax, [int27]
-        cmp     ax, bx
-        jne     invalidArgsError
-
-        xor     ax, ax
-        add     ax, [gentle]
-        add     ax, [hard]
-        test    ax, ax
-        jz      additionalArgsError
-
         lea     dx, [deleteMsg]
         mov     ah, 09h
         int     21h
@@ -132,20 +84,6 @@ deleteResident:
 deleteMsg db "Delete resident", 0Ah, 24h
 
 showHelp:
-        mov     ax, bx
-        add     ax, [delete]
-        add     ax, [resident]
-        cmp     ax, bx
-        jne     ambiguousCallError
-
-        mov     ax, bx
-        add     ax, [int21]
-        add     ax, [int27]
-        add     ax, [gentle]
-        add     ax, [hard]
-        cmp     ax, bx
-        jne     invalidArgsError
-
         mov     ah, 09h
         lea     dx, [usage]
         int     21h
@@ -164,13 +102,13 @@ include print.asm
 
 
 noTopLevelArgsMessage:
-    db "Any top level parameter is required", 0Ah, 24h
+    db "At least one top level parameter is required", 0Ah, 24h
 
 ambiguousCallMessage:
-    db "Ambiguous call: you should use only one top-level parameter", 0Ah, 24h
+    db "Ambiguous call: you should use only one parameter on each level", 0Ah, 24h
 
 invalidArgsMessage:
-    db "Command contains invalid parameters", 0Ah, 24h
+    db "Command contains invalid or conflicting parameters", 0Ah, 24h
 
 additionalArgsMessage:
     db "Additional command line args are expected", 0Ah, 24h

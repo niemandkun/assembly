@@ -72,7 +72,7 @@ matchLexemes endp
 matchSingleLexeme proc c near uses bx dx si di
         arg @@lexeme:word
         ; returns:
-        ; ax = token offset if lexeme is present in tokens;
+        ; ax = 1 if lexeme is present in tokens;
         ; ax = 0 otherwise
 
         mov     bx, [@@lexeme]
@@ -96,7 +96,7 @@ matchSingleLexeme proc c near uses bx dx si di
         test    ax, ax
         jnz     @@continue
 
-        mov     ax, bx
+        mov     ax, 01h
         mov     word ptr [bx].@length, 0h
         jmp     @@finish
 
