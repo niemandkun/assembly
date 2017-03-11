@@ -11,9 +11,15 @@ argvPtr = argcPtr + 1
 
 .code
         org     100h
-
 start:
-        lea     ax, [lexemes]
+        jmp     initEntry
+
+
+include tsr.asm
+
+
+initEntry:
+        lea     ax, [tsrCodeEnd]
 
         xor     dx, dx
         mov     dl, cs:[argcPtr]
@@ -68,12 +74,12 @@ errorEnd:
         int     20h
 
 makeResident:
-        lea     dx, [residentMsg]
-        mov     ah, 09h
-        int     21h
+        mov     bx, [int21]
+        push    bx
+        call    tryInstallTsr
+        add     sp, 2
         int     20h
 
-residentMsg db "Make resident", 0Ah, 24h
 
 deleteResident:
         lea     dx, [deleteMsg]
@@ -99,6 +105,8 @@ include lexeme.asm
 include string.asm
 
 include print.asm
+
+include install.asm
 
 
 noTopLevelArgsMessage:
