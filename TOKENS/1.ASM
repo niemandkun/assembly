@@ -211,9 +211,6 @@ readToken proc c near uses bx cx dx si
 
 @@readLoop:
         lodsb
-        dec     cx
-        jle     @@finish
-
         cmp     al, dl              ; is character terminating?
         jne     @@nonTerminating
 
@@ -231,11 +228,14 @@ readToken proc c near uses bx cx dx si
         jnz     @@nonEscaping
 
         mov     bl, 1               ; if so, set escaped = true
-        jmp     @@readLoop
+        jmp     @@loopEnd
 
 @@nonEscaping:
         xor     bl, bl
-        jmp     @@readLoop
+
+@@loopEnd:
+        dec     cx
+        jg      @@readLoop
 
 @@finish:
         mov     ax, [@@strPtr]
