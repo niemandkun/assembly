@@ -3,13 +3,56 @@ Token struc
     @length dw ?
 Token ends
 
-
 sizeOfToken = 4
-
 
 tokensCount dw ?
 tokens Token 64 dup(<>)
 tokensExclusiveEndPtr dw ?
+
+
+deployFlag db "DEPLOY", 00h
+deployFlagLength = $ - deployFlag
+
+int21Flag db "21H", 00h
+int21FlagLength = $ - int21Flag
+
+int27Flag db "27H", 00h
+int27FlagLength = $ - int27Flag
+
+removeFlag db "REMOVE", 00h
+removeFlagLength = $ - removeFlag
+
+gentleFlag db "GENTLE", 00h
+gentleFlagLength = $ - gentleFlag
+
+hardFlag db "HARD", 00h
+hardFlagLength = $ - hardFlag
+
+helpFlag db "HELP", 00h
+helpFlagLength = $ - helpFlag
+
+
+acceptableLexemes:
+    Token <deployFlag, deployFlagLength>
+    Token <int21Flag, int21FlagLength>
+    Token <int27Flag, int27FlagLength>
+    Token <removeFlag, removeFlagLength>
+    Token <gentleFlag, gentleFlagLength>
+    Token <hardFlag, hardFlagLength>
+    Token <helpFlag, helpFlagLength>
+
+acceptableLexemesLength = $ - acceptableLexemes
+
+lexemes:
+    deploy      dw 0
+    int21       dw 0
+    int27       dw 0
+    remove      dw 0
+    gentle      dw 0
+    hard        dw 0
+    help        dw 0
+
+lexemesExclusiveEndPtr = $
 
 
 parseArgs proc c near uses ax dx
@@ -268,3 +311,117 @@ printToken proc c near uses ax bx dx
         ret
 
 printToken endp
+
+
+matchLexemes proc c near uses ax bx cx si di
+
+        lea     di, [lexemes]
+        lea     si, [acceptableLexemes]
+        mov     cx, si
+        add     cx, acceptableLexemesLength
+
+@@matchLoop:
+        push    si
+        call    matchSingleLexeme
+        add     sp, 2
+
+        mov     word ptr [di], ax
+
+        add     di, 2
+        add     si, sizeOfToken
+
+        cmp     si, cx
+        jl      @@matchLoop
+
+        ret
+
+matchLexemes endp
+
+
+matchSingleLexeme proc c near uses bx dx si di
+        arg @@lexeme:word
+        ; returns:
+        ; ax = 1 if lexeme is present in tokens;
+        ; ax = 0 otherwise
+
+        mov     bx, [@@lexeme]
+        mov     si, [bx].@ptr
+        push    si
+
+        lea     bx, [tokens]
+        mov     dx, [tokensExclusiveEndPtr]
+
+@@compareLoop:
+        mov     di, [bx].@length
+
+        test    di, di
+        jz      @@continue
+
+        mov     di, [bx].@ptr
+        push    di
+        call    strCompare
+        add     sp, 2
+
+        test    ax, ax
+        jnz     @@continue
+
+        mov     ax, 01h
+        mov     word ptr [bx].@length, 0h
+        jmp     @@finish
+
+@@continue:
+        add     bx, sizeOfToken
+        cmp     bx, dx
+        jl      @@compareLoop
+
+        xor     ax, ax
+
+@@finish:
+        add     sp, 2
+        ret
+
+matchSingleLexeme endp
+
+
+validateTokens proc c near uses
+
+        lea     si, [tokens]
+        lea     di, [tokensExclusiveEndPtr]
+
+@@checkLoop:
+        mov     bx, [si].@length
+        test    bx, bx
+        jnz     @@invalidArgsError
+
+        add     si, sizeOfToken
+        cmp     si, di
+        jne     @@checkLoop
+
+        jmp     @@finish
+
+@@invalidArgsError:
+        lea     dx, [@@invalidArgsMessage]
+        mov     ah, 09h
+        int     21h
+
+        mov     dx, [si].@ptr
+        push    dx
+        call    strPrint
+        add     sp, 2
+
+        mov     dx, 0Ah
+        mov     ah, 02h
+        int     21h
+
+        lea     dx, [usage]
+        mov     ah, 09h
+        int     21h
+
+        int     20h
+
+@@invalidArgsMessage db "Invalid parameter: ", 24h
+
+@@finish:
+        ret
+
+validateTokens endp

@@ -32,20 +32,20 @@ initEntry:
         add     sp, 2 + 2
 
 handleArgs:
-        conflicting <help, resident, delete>, ambiguousCallError
-        conflicting <help, delete, int21, int27>, invalidArgsError
-        conflicting <help, resident, gentle, hard>, invalidArgsError
+        conflicting <help, deploy, remove>, ambiguousCallError
+        conflicting <help, remove, int21, int27>, invalidArgsError
+        conflicting <help, deploy, gentle, hard>, invalidArgsError
 
-        requiring resident, <int21, int27>, additionalArgsError
-        requiring delete, <gentle, hard>, additionalArgsError
+        requiring deploy, <int21, int27>, additionalArgsError
+        requiring remove, <gentle, hard>, additionalArgsError
 
-        mov     bx, [resident]
+        mov     bx, [deploy]
         test    bx, bx
-        jnz     makeResident
+        jnz     deployResident
 
-        mov     bx, [delete]
+        mov     bx, [remove]
         test    bx, bx
-        jnz     deleteResident
+        jnz     removeResident
 
         mov     bx, [help]
         test    bx, bx
@@ -73,14 +73,14 @@ errorEnd:
         int     21h
         jmp     exit
 
-makeResident:
+deployResident:
         mov     bx, [int21]
         push    bx
         call    tryInstallTsr
         add     sp, 2
         jmp     exit
 
-deleteResident:
+removeResident:
         mov     bx, [gentle]
         push    bx
         call    uninstallTsr
@@ -98,15 +98,13 @@ exit:
         int     20h
 
 
-include token.asm
-
-include lexeme.asm
+include args.asm
 
 include string.asm
 
 include print.asm
 
-include install.asm
+include deploy.asm
 
 
 noTopLevelArgsMessage:
@@ -123,22 +121,22 @@ additionalArgsMessage:
 
 helpMsg:
     db 0Ah
-    db "Install resident and delete it if possible.", 0Ah
+    db "Deploy resident and remove it if possible.", 0Ah
     db 0Ah
     db "Parameters:", 0Ah
     db 0Ah
-    db "/R - terminate and stay resident, listening to int 2Fh", 0Ah
-    db "        27 - using int 27h", 0Ah
-    db "        21 - using function 31h of int 21h", 0Ah
+    db "DEPLOY - install resident that is listening to int 2Fh", 0Ah
+    db "        27h - using int 27h", 0Ah
+    db "        21h - using function 31h of int 21h", 0Ah
     db 0Ah
-    db "/D - delete resident", 0Ah
-    db "        GENTLE - delete only if possible", 0Ah
-    db "        HARD - forced delete", 0Ah
+    db "REMOVE - remove resident", 0Ah
+    db "        GENTLE - remove only if possible", 0Ah
+    db "        HARD - forced remove", 0Ah
     db 0Ah
-    db "/? - show this help message and exit", 0Ah
+    db "HELP - show this help message and exit", 0Ah
     db 24h
 
 usage:
-    db "Usage: %PROGRAM NAME% [/?] [/R (21 | 27)] [/D (GENTLE | HARD)]", 0Ah, 24h
+    db "Usage: 1 [HELP] [DEPLOY (21h | 27h)] [REMOVE (GENTLE | HARD)]", 0Ah, 24h
 
 end start
