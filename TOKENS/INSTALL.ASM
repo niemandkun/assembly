@@ -99,11 +99,33 @@ setInterruptVector:
         int     21h                             ; get int vector in es:bx
         mov     word ptr cs:[oldHandlerPtr], bx
         mov     word ptr cs:[oldHandlerPtr+2], es
+
+        push    bx                              ; print old vector
+        push    es
+        lea     dx, [oldVectorMsg]
+        mov     ah, 09h
+        int     21h
+        call    printSegmentOffset
+        add     sp, 2 + 2
+
         lea     dx, [tsrEntry]
         mov     ah, 25h
         mov     al, multiplexInterruptNo
         int     21h                             ; set int vector to ds:dx
+
+        push    dx                              ; print new vector
+        push    ds
+        lea     dx, [newVectorMsg]
+        mov     ah, 09h
+        int     21h
+        call    printSegmentOffset
+        add     sp, 2 + 2
+
         ret
+
+
+oldVectorMsg db "Old interrupt vector: ", 24h
+newVectorMsg db "New interrupt vector: ", 24h
 
 
 freeSystemMemory:
