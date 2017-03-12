@@ -207,11 +207,21 @@ uninstallTsrCompletely:
         ; assume that es is pointing to the segment with resident code
 
         push    ds
+
         lds     dx, es:[oldHandlerPtr]          ; load address of old handler
         mov     ah, 25h
         mov     al, multiplexInterruptNo
         int     21h                             ; set int vector to ds:dx
+        mov     ax, ds
         pop     ds
+
+        push    dx                              ; print old vector
+        push    ax
+        lea     dx, [oldVectorMsg]
+        mov     ah, 09h
+        int     21h
+        call    printSegmentOffset
+        add     sp, 2 + 2
 
         mov     ah, 49h
         int     21h             ; free resident memory block
@@ -222,9 +232,7 @@ uninstallTsrCompletely:
 
         ret
 
-uninstallCompletelyMsg:
-    db "Resident has completely been uninstalled.", 0Ah
-    db "Interrupt vector restored.", 0Ah, 24h
+uninstallCompletelyMsg db "Resident is completely uninstalled. Interrupt vector is restored.", 0Ah, 24h
 
 
 shrinkTsr:
@@ -256,9 +264,7 @@ shrinkTsr:
 
         ret
 
-shrinkMessage:
-    db "Resident has been shrinked.", 0Ah
-    db "Interrupt vector hasn't been changed.", 0Ah, 24h
+shrinkMessage db "Resident has been shrinked. Interrupt vector is not changed.", 0Ah, 24h
 
 
 loadTsrSegmentAddressToEs:
