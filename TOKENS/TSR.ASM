@@ -1,9 +1,17 @@
 ; #############################################################################
 
+; Resident data:
 oldHandlerPtr dd ?
 tsrFunction db ?
-tsrSubfunction = 42h
+
+; Resident constants:
 tsrMagicNumber = 0DEADh
+tsrPositiveResponse = 0FFh
+
+; Resident subfunctions:
+tsrCheck = 00h
+tsrIdentify = 42h
+tsrGetSegmentAddress = 80h
 
 ; #############################################################################
 
@@ -11,25 +19,41 @@ tsrEntry:
         cmp     ah, cs:[tsrFunction]    ; check, that this resident was called
         jne     tsrRefuse               ; call next handler in chain if not
 
-        cmp     al, 00h                 ; if al = 0 return 0FFh
-        je      tsrReturn
+        cmp     al, tsrCheck
+        je      tsrDoCheck
 
-        cmp     al, tsrSubfunction      ; else if al = tsrSubfunction
-        jne     tsrRefuse
+        cmp     al, tsrIdentify
+        je      tsrDoIdentify
 
-        cmp     dx, tsrMagicNumber      ; and dx = tsrMagicNumber
+        cmp     al, tsrGetSegmentAddress
+        je      tsrDoGetSegmentAddress
+
+        jmp     tsrRefuse
+
+tsrDoCheck:
+        mov     al, tsrPositiveResponse     ; "Hey, I'm here!"
+        jmp     tsrReturn
+
+tsrDoIdentify:
+        cmp     dx, tsrMagicNumber          ; and dx = tsrMagicNumber
         jne     tsrRefuse
 
         push    cx
         mov     cx, 8
-        ror     dx, cl                  ; swap bytes in DX
+        ror     dx, cl                      ; swap bytes in DX
         pop     cx
+        jmp     tsrReturn
+
+tsrDoGetSegmentAddress:
+        mov     ax, cs
+        mov     es, ax
 
 tsrReturn:
-        mov     al, 0FFh                ; "Hey, I'm here!"
         iret
 
-tsrRefuse:     ; call next handler in chain
-        jmp     cs:[oldHandlerPtr]
+tsrRefuse:
+        jmp     cs:[oldHandlerPtr]          ; call next handler in chain
 
 tsrCodeEnd:
+
+; #############################################################################

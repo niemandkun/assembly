@@ -71,23 +71,21 @@ errorEnd:
         int     21h
         lea     dx, [usage]
         int     21h
-        int     20h
+        jmp     exit
 
 makeResident:
         mov     bx, [int21]
         push    bx
         call    tryInstallTsr
         add     sp, 2
-        int     20h
-
+        jmp     exit
 
 deleteResident:
-        lea     dx, [deleteMsg]
-        mov     ah, 09h
-        int     21h
-        int     20h
-
-deleteMsg db "Delete resident", 0Ah, 24h
+        mov     bx, [gentle]
+        push    bx
+        call    uninstallTsr
+        add     sp, 2
+        jmp     exit
 
 showHelp:
         mov     ah, 09h
@@ -95,6 +93,8 @@ showHelp:
         int     21h
         lea     dx, [helpMsg]
         int     21h
+
+exit:
         int     20h
 
 
@@ -110,20 +110,20 @@ include install.asm
 
 
 noTopLevelArgsMessage:
-    db "At least one top level parameter is required", 0Ah, 24h
+    db "At least one top level parameter is required.", 0Ah, 24h
 
 ambiguousCallMessage:
-    db "Ambiguous call: you should use only one parameter on each level", 0Ah, 24h
+    db "Ambiguous call: you should use only one parameter on each level.", 0Ah, 24h
 
 invalidArgsMessage:
-    db "Command contains invalid or conflicting parameters", 0Ah, 24h
+    db "Command contains invalid or conflicting parameters.", 0Ah, 24h
 
 additionalArgsMessage:
-    db "Additional command line args are expected", 0Ah, 24h
+    db "Additional command line args are expected.", 0Ah, 24h
 
 helpMsg:
     db 0Ah
-    db "Install resident and delete it if possible", 0Ah
+    db "Install resident and delete it if possible.", 0Ah
     db 0Ah
     db "Parameters:", 0Ah
     db 0Ah

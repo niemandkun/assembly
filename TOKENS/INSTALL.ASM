@@ -1,5 +1,6 @@
 ; #############################################################################
 
+environVarsPtrOffset = 2Ch
 multiplexInterruptNo = 2Fh
 tsrExpectedResponse = 0ADDEh
 
@@ -21,6 +22,8 @@ tryInstallTsr proc c near uses ax bx cx dx si di
         mov     ah, 09h
         int     21h
 
+        call    freeSystemMemory
+
         mov     ax, [@@tsrInstall21h]
         test    ax, ax
         jz      @@install27h
@@ -36,12 +39,12 @@ tryInstallTsr proc c near uses ax bx cx dx si di
 tsrInstalledError:
         lea     dx, [tsrInstalledErrorMsg]
         jmp     tsrErrorFinish
-tsrInstalledErrorMsg db "Resident has already been installed, aborting :(", 24h
+tsrInstalledErrorMsg db "Resident has already been installed.", 0Ah, 24h
 
 noFreeIdError:
         lea     dx, [noFreeIdErrorMsg]
         jmp     tsrErrorFinish
-noFreeIdErrorMsg db "No free ID was found for interrupt handler, aborting :(", 24h
+noFreeIdErrorMsg db "No free ID was found for interrupt handler.", 0Ah, 24h
 
 tsrErrorFinish:
         mov     ah, 09h
@@ -56,12 +59,12 @@ tryInstallTsr endp
 
 findInstalledTsr:
         ; checks if tsr from this file was already installed earlier
-        ; returns: ax = ID if already installed, ax = 0 otherwise
+        ; returns: ah = ID if already installed, ah = 0 otherwise
         mov     cx, 0FFh
 @@checkLoop:
         xor     ax, ax
         mov     ah, cl
-        mov     al, tsrSubfunction
+        mov     al, tsrIdentify
         mov     dx, tsrMagicNumber
         int     multiplexInterruptNo
         cmp     dx, tsrExpectedResponse
@@ -103,6 +106,14 @@ setInterruptVector:
         ret
 
 
+freeSystemMemory:
+        mov     dx, cs:[environVarsPtrOffset]
+        mov     es, dx
+        mov     ah, 49h
+        int     21h
+        ret
+
+
 installTsr27h:
         lea     dx, [tsrCodeEnd]
         int     27h
@@ -119,4 +130,144 @@ installTsr21h:
         int     21h
 
 
-tsrSuccessMsg db "Resident successfully installed. Have a nice day :)", 24h
+tsrSuccessMsg db "Resident successfully installed. Interrupt vector changed.", 0Ah, 24h
+
+
+uninstallTsr proc c near uses ax bx cx dx es ds si di
+        arg @@checkUninstallAvailable:word
+
+        call    findInstalledTsr
+        test    ax, ax
+        jz      @@tsrNotInstalledError
+
+        mov     cs:[tsrFunction], ah
+
+        call    loadTsrSegmentAddressToEs
+
+        mov     ax, [@@checkUninstallAvailable]
+        test    ax, ax
+        jz      @@uninstallCompletely
+
+        call    isAbleToUninstallCompletely
+        test    ax, ax
+        jnz     @@uninstallCompletely
+
+        ; jmp     @@uninstallNotAvailableError
+        call    shrinkTsr
+        jmp     @@finish
+
+@@uninstallCompletely:
+        call    uninstallTsrCompletely
+        jmp     @@finish
+
+@@tsrNotInstalledError:
+        lea     dx, [@@tsrNotInstalledMessage]
+        jmp     @@errorFinish
+@@tsrNotInstalledMessage db "Resident is not installed, nothing to do.", 0Ah, 24h
+
+@@uninstallNotAvailableError:
+        lea     dx, [@@uninstallNotAvailableMsg]
+        jmp     @@errorFinish
+@@uninstallNotAvailableMsg db "Unable to uninstall resident, try uninstall hard.", 0Ah, 24h
+
+@@errorFinish:
+        mov     ah, 09h
+        int     21h
+        int     20h
+
+@@finish:
+        ret
+
+uninstallTsr endp
+
+
+uninstallTsrCompletely:
+        ; assume that es is pointing to the segment with resident code
+
+        push    ds
+        lds     dx, es:[oldHandlerPtr]          ; load address of old handler
+        mov     ah, 25h
+        mov     al, multiplexInterruptNo
+        int     21h                             ; set int vector to ds:dx
+        pop     ds
+
+        mov     ah, 49h
+        int     21h             ; free resident memory block
+
+        lea     dx, [uninstallCompletelyMsg]
+        mov     ah, 09h
+        int     21h
+
+        ret
+
+uninstallCompletelyMsg:
+    db "Resident has completely been uninstalled.", 0Ah
+    db "Interrupt vector restored.", 0Ah, 24h
+
+
+shrinkTsr:
+        ; assume that es is pointing to the segment with resident code
+
+        lea     si, [tsrRefuse]     ; address of JMP instruction
+        lea     cx, [tsrCodeEnd]
+        sub     cx, si              ; length of JMP instruction
+
+        lea     di, [tsrEntry]
+
+        push    cx
+        rep     movsb               ; copy JMP to [tsrEntry]
+        pop     cx
+
+        lea     bx, [tsrEntry]
+        add     bx, cx              ; new size of resident in bytes
+
+        mov     cl, 04h             ; divide by 16 = 2**4
+        shr     bx, cl
+        inc     bx                  ; new size of resident in paragraphs
+
+        mov     ah, 4Ah             ; resize resident block
+        int     21h
+
+        lea     dx, [shrinkMessage]
+        mov     ah, 09h
+        int     21h
+
+        ret
+
+shrinkMessage:
+    db "Resident has been shrinked.", 0Ah
+    db "Interrupt vector hasn't been changed.", 0Ah, 24h
+
+
+loadTsrSegmentAddressToEs:
+
+        mov     ah, cs:[tsrFunction]
+        mov     al, tsrGetSegmentAddress
+        int     multiplexInterruptNo
+
+        ret
+
+
+isAbleToUninstallCompletely:
+
+        ; args: es - segment address of resident
+
+        push    es
+
+        mov     ah, 35h
+        mov     al, multiplexInterruptNo
+        int     21h                         ; load vector in es:bx
+
+        mov     bx, es
+        pop     es
+        mov     ax, es
+        cmp     ax, bx
+
+        jne     @@returnFalse
+
+        mov     ax, 1
+        ret
+
+@@returnFalse:
+        xor     ax, ax
+        ret
