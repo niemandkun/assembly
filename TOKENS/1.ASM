@@ -34,10 +34,10 @@ initEntry:
 handleArgs:
         conflicting <help, deploy, remove>, ambiguousCallError
         conflicting <help, remove, int21, int27>, invalidArgsError
-        conflicting <help, deploy, gentle, hard>, invalidArgsError
+        conflicting <help, deploy, gentle, resize, hard>, invalidArgsError
 
         requiring deploy, <int21, int27>, additionalArgsError
-        requiring remove, <gentle, hard>, additionalArgsError
+        requiring remove, <gentle, resize, hard>, additionalArgsError
 
         mov     bx, [deploy]
         test    bx, bx
@@ -81,6 +81,8 @@ deployResident:
         jmp     exit
 
 removeResident:
+        mov     bx, [resize]
+        push    bx
         mov     bx, [gentle]
         push    bx
         call    uninstallTsr
@@ -130,13 +132,14 @@ helpMsg:
     db "        21h - using function 31h of int 21h", 0Ah
     db 0Ah
     db "REMOVE - remove resident", 0Ah
-    db "        GENTLE - remove only if possible", 0Ah
     db "        HARD - forced remove", 0Ah
+    db "        GENTLE - print error if unable to remove", 0Ah
+    db "        RESIZE - resize resident if unable to remove", 0Ah
     db 0Ah
     db "HELP - show this help message and exit", 0Ah
     db 24h
 
 usage:
-    db "Usage: 1 [HELP] [DEPLOY (21h | 27h)] [REMOVE (GENTLE | HARD)]", 0Ah, 24h
+    db "Usage: 1 [HELP] [DEPLOY (21h | 27h)] [REMOVE (GENTLE | RESIZE | HARD)]", 0Ah, 24h
 
 end start

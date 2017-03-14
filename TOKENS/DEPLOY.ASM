@@ -156,7 +156,7 @@ tsrSuccessMsg db "Resident successfully installed. Interrupt vector changed.", 0
 
 
 uninstallTsr proc c near uses ax bx cx dx es ds si di
-        arg @@checkUninstallAvailable:word
+        arg @@checkUninstallAvailable:word, @@allowResize:word
 
         call    findInstalledTsr
         test    ax, ax
@@ -167,6 +167,8 @@ uninstallTsr proc c near uses ax bx cx dx es ds si di
         call    loadTsrSegmentAddressToEs
 
         mov     ax, [@@checkUninstallAvailable]
+        mov     bx, [@@allowResize]
+        or      ax, bx
         test    ax, ax
         jz      @@uninstallCompletely
 
@@ -174,7 +176,11 @@ uninstallTsr proc c near uses ax bx cx dx es ds si di
         test    ax, ax
         jnz     @@uninstallCompletely
 
-        ; jmp     @@uninstallNotAvailableError
+        mov     ax, [@@allowResize]
+        test    ax, ax
+        jz      @@uninstallNotAvailableError
+
+@@resize:
         call    shrinkTsr
         jmp     @@finish
 
@@ -190,7 +196,7 @@ uninstallTsr proc c near uses ax bx cx dx es ds si di
 @@uninstallNotAvailableError:
         lea     dx, [@@uninstallNotAvailableMsg]
         jmp     @@errorFinish
-@@uninstallNotAvailableMsg db "Unable to uninstall resident, try uninstall hard.", 0Ah, 24h
+@@uninstallNotAvailableMsg db "Unable to uninstall resident, try REMOVE HARD or RESIZE.", 0Ah, 24h
 
 @@errorFinish:
         mov     ah, 09h
@@ -258,13 +264,24 @@ shrinkTsr:
         mov     ah, 4Ah             ; resize resident block
         int     21h
 
+        jc      @@shrinkError
+
         lea     dx, [shrinkMessage]
         mov     ah, 09h
         int     21h
 
         ret
 
+@@shrinkError:
+        lea     dx, [shrinkErrorMessage]
+        mov     ah, 09h
+        int     21h
+        int     20h
+
 shrinkMessage db "Resident has been shrinked. Interrupt vector is not changed.", 0Ah, 24h
+
+
+shrinkErrorMessage db "Error resizing resident.", 0Ah, 24h
 
 
 loadTsrSegmentAddressToEs:

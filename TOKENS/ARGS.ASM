@@ -25,6 +25,9 @@ removeFlagLength = $ - removeFlag
 gentleFlag db "GENTLE", 00h
 gentleFlagLength = $ - gentleFlag
 
+resizeFlag db "RESIZE", 00h
+resizeFlagLength = $ - resizeFlag
+
 hardFlag db "HARD", 00h
 hardFlagLength = $ - hardFlag
 
@@ -38,6 +41,7 @@ acceptableLexemes:
     Token <int27Flag, int27FlagLength>
     Token <removeFlag, removeFlagLength>
     Token <gentleFlag, gentleFlagLength>
+    Token <resizeFlag, resizeFlagLength>
     Token <hardFlag, hardFlagLength>
     Token <helpFlag, helpFlagLength>
 
@@ -49,6 +53,7 @@ lexemes:
     int27       dw 0
     remove      dw 0
     gentle      dw 0
+    resize      dw 0
     hard        dw 0
     help        dw 0
 
