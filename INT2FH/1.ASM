@@ -1,178 +1,145 @@
-        .model tiny
-        locals
+.model tiny
+locals
+.386
 
-; ## Constants ################################################################
+include macros.asm
 
-multiplex_interrupt_no = 2Fh
+; constants:
 
-; ## Code #####################################################################
+argcPtr = 80h
+argvPtr = argcPtr + 1
 
-        .code
+.code
         org     100h
 start:
-        jmp     tsr_init
+        jmp     initEntry
 
-; ## Data #####################################################################
 
-unique_token db "eb54674b-ddcd-5344-8ecd-422bc122450e", 00h    ; Version 5 UUID
+include tsr.asm
 
-old_handler_ptr dd ?
-my_id db ?
 
-; ## Entry ####################################################################
+initEntry:
+        lea     ax, [tsrCodeEnd]
 
-tsr_entry:
-        cmp     ah, cs:[my_id]          ; check, that this resident was called
-        jne     tsr_refuse              ; call next handler in chain if not
-        push    ax
-        mov     ax, cs
-        mov     es, ax                  ; return pointer to unique token
-        lea     di, [unique_token]      ; in es:di
-        pop     ax
-        mov     al, 0FFh                ; "Hey, I'm here!"
-        iret
+        xor     dx, dx
+        mov     dl, cs:[argcPtr]
+        push    dx
 
-tsr_refuse:     ; call next handler in chain
-        jmp     cs:[old_handler_ptr]
+        mov     dx, argvPtr
+        push    dx
 
-tsr_code_end:
+        call    parseArgs
+        add     sp, 2 + 2
 
-; ## Init #####################################################################
+handleArgs:
+        conflicting <help, deploy, remove>, ambiguousCallError
+        conflicting <help, remove, int21, int27>, invalidArgsError
+        conflicting <help, deploy, gentle, resize, hard>, invalidArgsError
 
-tsr_init:
-        call    find_installed_tsr
-        test    ax, ax
-        jnz     tsr_installed_error
-        call    select_free_id
-        test    ax, ax
-        jz      no_free_id_error
-        mov     cs:[my_id], ah
-        call    set_interrupt_vector
-        call    install_tsr
+        requiring deploy, <int21, int27>, additionalArgsError
+        requiring remove, <gentle, resize, hard>, additionalArgsError
 
-tsr_installed_error:
-        lea     dx, [tsr_installed_error_msg]
-        jmp     tsr_error_finish
-tsr_installed_error_msg db "Resident has already been installed, aborting :(", 24h
+        mov     bx, [deploy]
+        test    bx, bx
+        jnz     deployResident
 
-no_free_id_error:
-        lea     dx, [no_free_id_error_msg]
-        jmp     tsr_error_finish
-no_free_id_error_msg db "No free ID was found for interrupt handler, aborting :(", 24h
+        mov     bx, [remove]
+        test    bx, bx
+        jnz     removeResident
 
-tsr_error_finish:
+        mov     bx, [help]
+        test    bx, bx
+        jnz     showHelp
+
+noTopLevelArgsError:
+        lea     dx, [noTopLevelArgsMessage]
+        jmp     errorEnd
+
+ambiguousCallError:
+        lea     dx, [ambiguousCallMessage]
+        jmp     errorEnd
+
+invalidArgsError:
+        lea     dx, [invalidArgsMessage]
+        jmp     errorEnd
+
+additionalArgsError:
+        lea     dx, [additionalArgsMessage]
+
+errorEnd:
         mov     ah, 09h
         int     21h
+        lea     dx, [usage]
+        int     21h
+        jmp     exit
+
+deployResident:
+        mov     bx, [int21]
+        push    bx
+        call    tryInstallTsr
+        add     sp, 2
+        jmp     exit
+
+removeResident:
+        mov     bx, [resize]
+        push    bx
+        mov     bx, [gentle]
+        push    bx
+        call    uninstallTsr
+        add     sp, 2
+        jmp     exit
+
+showHelp:
+        mov     ah, 09h
+        lea     dx, [usage]
+        int     21h
+        lea     dx, [helpMsg]
+        int     21h
+
+exit:
         int     20h
 
 
-find_installed_tsr:
-        ; checks if tsr from this file was already installed earlier
-        ; returns: ax = ID if already installed, ax = 0 otherwise
-        lea     si, [unique_token]
-        mov     cx, 0FFh
-@@check_loop:
-        xor     ax, ax
-        xor     di, di              ; expecting unique token address in di
-        mov     ah, cl
-        int     multiplex_interrupt_no
-        test    di, di              ; if di is empty, skip cmpstr
-        jz      @@check_loop_end
-        mov     bx, ax              ; remember called ID
-        call    strcmp              ; else need to compare tokens
-        test    ax, ax
-        jnz     @@check_loop_end    ; if tokens are not equal, continue
-        mov     ax, bx              ; else return called ID
-        ret
-@@check_loop_end:
-        dec     cx
-        jnz     @@check_loop        ; while cx != 0
-        xor     ax, ax              ; if token is not found, return 0
-        ret
+include args.asm
+
+include string.asm
+
+include print.asm
+
+include deploy.asm
 
 
-select_free_id:
-        ; returns: ah = ID, if ID is found, ah = 0 otherwise
-        mov     cx, 0FFh
-@@select_id_loop:
-        xor     ax, ax              ; loop over all IDs
-        mov     ah, cl
-        int     multiplex_interrupt_no
-        test    al, al              ; if ok to install (al = 0), return this id
-        jz      @@select_id_finish
-        dec     cx
-        jnz     @@select_id_loop
-        xor     ax, ax              ; if not ok for all, return 0
-@@select_id_finish:
-        ret
+noTopLevelArgsMessage:
+    db "At least one top level parameter is required.", 0Ah, 24h
 
+ambiguousCallMessage:
+    db "Ambiguous call: you should use only one parameter on each level.", 0Ah, 24h
 
-set_interrupt_vector:
-        mov     ah, 35h
-        mov     al, multiplex_interrupt_no
-        int     21h                             ; get int vector in es:bx
-        mov     word ptr cs:[old_handler_ptr], bx
-        mov     word ptr cs:[old_handler_ptr+2], es
-        lea     dx, [tsr_entry]
-        mov     ah, 25h
-        mov     al, multiplex_interrupt_no
-        int     21h                             ; set int vector to ds:dx
-        ret
+invalidArgsMessage:
+    db "Command contains invalid or conflicting parameters.", 0Ah, 24h
 
+additionalArgsMessage:
+    db "Additional command line args are expected.", 0Ah, 24h
 
-install_tsr:
-        lea     dx, [tsr_success_msg]
-        mov     ah, 09h
-        int     21h
-        lea     dx, [tsr_code_end]
-        int     27h
+helpMsg:
+    db 0Ah
+    db "Deploy resident and remove it if possible.", 0Ah
+    db 0Ah
+    db "Parameters:", 0Ah
+    db 0Ah
+    db "DEPLOY - install resident that is listening to int 2Fh", 0Ah
+    db "        27h - using int 27h", 0Ah
+    db "        21h - using function 31h of int 21h", 0Ah
+    db 0Ah
+    db "REMOVE - remove resident", 0Ah
+    db "        HARD - forced remove", 0Ah
+    db "        GENTLE - print error if unable to remove", 0Ah
+    db "        RESIZE - resize resident if unable to remove", 0Ah
+    db 0Ah
+    db "HELP - show this help message and exit", 0Ah
+    db 24h
 
-tsr_success_msg db "Resident successfully installed. Have a nice day :)", 24h
-
-
-strcmp:
-        ; compare two zero terminated strings
-        ; args: ds:si - first, es:di - second
-        ; returns: ax = 0 if strings are equal, 1 otherwise
-        push    si
-        push    di
-        push    cx
-        call    strlen
-@@strcmp_loop:
-        cmpsb
-        jne     @@strcmp_fail
-        dec     cx
-        jnz     @@strcmp_loop
-        xor     ax, ax
-        jmp     @@strcmp_ret
-@@strcmp_fail:
-        mov     ax, 1
-@@strcmp_ret:
-        pop     cx
-        pop     di
-        pop     si
-        ret
-
-
-strlen:
-        ; calculate a length of the zero terminated string
-        ; args: ds:si - string to calculate length
-        ; returns: cx = length of the given string
-        push    ax
-        push    si              ; do not waste address in si
-        xor     cx, cx
-@@strlen_loop:
-        lodsw
-        test    al, al
-        jz      @@strlen_finish
-        inc     cx
-        test    ah, ah
-        jz      @@strlen_finish
-        inc     cx
-        jmp     @@strlen_loop
-@@strlen_finish:
-        pop     si
-        pop     ax
-        ret
+usage:
+    db "Usage: 1 [HELP] [DEPLOY (21h | 27h)] [REMOVE (GENTLE | RESIZE | HARD)]", 0Ah, 24h
 
 end start

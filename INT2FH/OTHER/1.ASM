@@ -40,6 +40,9 @@ tsr_code_end:
 ; ## Init #####################################################################
 
 tsr_init:
+        call    find_installed_tsr
+        test    ax, ax
+        jnz     tsr_installed_error
         call    select_free_id
         test    ax, ax
         jz      no_free_id_error

@@ -6,58 +6,67 @@ start:
         mov     si, 2000h
 
 @@1:
-                                ; clean registers for further use
-        xor     bx, bx          ; bx: number of characters in current line
-        xor     cx, cx          ; cx: ascii code of character to print
-        xor     dx, dx
-
-
-        mov     ah, 02h         ; print character DOS API service
+        xor     dl, dl
+        xor     bl, bl
+        lea     di, buffer
+        cld
 
 loop_start:
-        cmp     cl, 1Bh         ; escape character
+        cmp     dl, 24h         ; $ character
         je      print_space
 
-        cmp     cl, 0Dh         ; carriage return
+        cmp     dl, 1Bh         ; escape character
         je      print_space
 
-        cmp     cl, 07h         ; all characters in range from 07h to 0Ah
-        jb      print_char      ; are control characters
-                                ; should print space instead of them
-        cmp     cl, 0Ah
+        cmp     dl, 0Dh         ; carriage return
+        je      print_space
+
+        cmp     dl, 07h         ; control characters in range from 07h to 0Ah
+        jb      print_char
+
+        cmp     dl, 0Ah
         ja      print_char
 
 print_space:
-        mov     dl, 20h         ; put space character into dl
+        mov     al, 20h         ; put space character into dl
         jmp     continue
 
 print_char:
-        mov     dl, cl          ; put current character into dl
+        mov     al, dl          ; put current character into dl
+        mov     cl, 01h
 
 continue:
-;        int     21h             ; print character from register dl
+        stosb
 
         inc     bl
-        cmp     bl, 10h         ; if didnt print 10h characters yet
-        jne     end             ; do nothing
+        cmp     bl, 10h
+        jne     loop_end
 
-        xor     bl, bl          ; else
-        mov     dl, 0Ah         ; print line break character
+        xor     bl, bl
+        mov     al, 0Ah
+        stosb
+
+        mov     al, 0Dh
+        stosb
+
+loop_end:
+        inc     dl
+        cmp     dl, 00h
+        jne     loop_start
+
+        mov     [di], "$"
+
+        lea     dx, buffer
+        mov     ah, 09h
 ;        int     21h
-
-        mov     dl, 0Dh         ; and print carriage return character
-;        int     21h
-
-end:
-        inc     cl              ; calculate next character's code
-        cmp     cl, 0h          ; if not every character is printed
-        jne     loop_start      ; begin loop from the beginning
 
 
         dec      si
         test     si, si
         jnz      @@1
 
-        ret                     ; exit otherwise
+        ret
+
+buffer  db    1024  dup (?)
 
 end start

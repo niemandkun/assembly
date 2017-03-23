@@ -6,6 +6,7 @@ tsrFunction db ?
 
 ; Resident constants:
 tsrMagicNumber = 0DEADh
+tsrExpectedResponse = 0ADDEh
 tsrPositiveResponse = 0FFh
 
 ; Resident subfunctions:

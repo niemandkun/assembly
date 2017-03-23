@@ -2,7 +2,6 @@
 
 environVarsPtrOffset = 2Ch
 multiplexInterruptNo = 2Fh
-tsrExpectedResponse = 0ADDEh
 
 ; ## Init #####################################################################
 
