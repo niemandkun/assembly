@@ -16,7 +16,7 @@ loadPageModeArgs proc c near uses bx cx dx si di
         cmp     cx, 2
         jne     printUsageAndExit
 
-        lea     di, [currentVideoMode]
+        lea     di, [currentVideoParams]
         lea     si, [tokens]
 
         xor     ax, ax

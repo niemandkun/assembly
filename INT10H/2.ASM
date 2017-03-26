@@ -438,6 +438,7 @@ oldVideoMode db ?
 
 oldCursorPosition dw ?
 
+currentVideoParams:
 currentVideoMode db ?
 currentVideoPage db ?
 
