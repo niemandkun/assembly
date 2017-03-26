@@ -28,6 +28,10 @@ dosGetTime = 2Ch
         org     100h
 
 start:
+        call    parseArgsCom
+        call    loadPageModeArgs
+        call    checkPageModeCorrect
+
         call    saveVideoMode
         call    saveScreenState
         call    saveCursor
@@ -355,6 +359,11 @@ getRandom proc c near uses bx cx dx
 getRandom endp
 
 
+include string.asm
+
+include args.asm
+
+
 randomSeed dw ?
 
 oldVideoParams:
@@ -363,9 +372,8 @@ oldVideoMode db ?
 
 oldCursorPosition dw ?
 
-include args.asm
-
-include string.asm
+currentVideoMode dw ?
+currentVideoPage dw ?
 
 screenBuffer db videoPageLengthBytes dup(?)
 

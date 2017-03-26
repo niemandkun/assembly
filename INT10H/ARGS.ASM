@@ -5,13 +5,81 @@ Token ends
 
 sizeOfToken = 4
 
-
-tokensCount dw ?
-tokens Token 64 dup(<>)
-tokensExclusiveEndPtr dw ?
-
 argcPtr = 80h
 argvPtr = argcPtr + 1
+
+
+loadPageModeArgs proc c near uses bx cx dx si di
+
+        mov     cx, [tokensCount]
+
+        cmp     cx, 2
+        jne     printUsageAndExit
+
+        lea     di, [currentVideoMode]
+        lea     si, [tokens]
+
+        xor     ax, ax
+
+@@checkLoop:
+        mov     bx, [si].@length
+
+        cmp     bx, 1
+        jne     printUsageAndExit
+
+        mov     bx, [si].@ptr
+        mov     al, [bx]
+        sub     al, 30h
+
+        stosw
+
+        add     si, sizeOfToken
+        dec     cx
+        jnz     @@checkLoop
+
+        ret
+
+loadPageModeArgs endp
+
+
+checkPageModeCorrect proc near
+
+        mov     ax, [currentVideoPage]
+
+        test    ax, ax
+        jl      printUsageAndExit
+
+        cmp     ax, 7
+        jg      printUsageAndExit
+
+        mov     ax, [currentVideoMode]
+
+        test    ax, ax
+        jl      printUsageAndExit
+
+        cmp     ax, 3
+        jg      printUsageAndExit
+
+        ret
+
+checkPageModeCorrect endp
+
+
+printUsageAndExit proc near
+
+        lea     dx, [usage]
+        mov     ah, 09h
+        int     21h
+        int     20h
+
+printUsageAndExit endp
+
+
+usage db 0Ah
+      db "Usage: 2.COM MODE PAGE", 0Ah, 0Ah
+      db "Print fullscreen ASCII-table and exit by pressing any key.", 0Ah, 0Ah
+      db "MODE: 0..3 - video mode to use.", 0Ah
+      db "PAGE: 0..7 - video page to print table.", 0Ah, 24h
 
 
 parseArgsCom proc c near uses dx
@@ -265,3 +333,8 @@ terminateToken proc c near uses ax bx cx
         ret
 
 terminateToken endp
+
+
+tokensCount dw ?
+tokens Token 64 dup(<>)
+tokensExclusiveEndPtr dw ?
