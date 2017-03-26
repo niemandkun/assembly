@@ -67,27 +67,39 @@ clearScreen proc c near uses es di ax cx
 clearScreen endp
 
 
-showAscii proc c near uses ds es bx dx di cx
-
-        mov     ax, biosRomSegment
-        mov     ds, ax
-
-        mov     bp, ds:[biosTextColumnsCount]
-
-        mov     di, bp
-        sub     di, 16+16           ; address of first character
-
-        shl     bp, 1               ; length of one line in bytes
-
-        mov     ax, (25-16)/2       ; vertical offset
-        mul     bp
-        add     di, ax
-
-        xor     si, si              ; character
-        xor     cx, cx              ; lines counter
+showAscii proc c near uses es bx dx di cx
 
         call    getPageStart
         mov     es, ax
+
+        mov     ax, biosRomSegment
+        push    ds
+        mov     ds, ax
+
+        mov     bp, ds:[biosTextColumnsCount]
+        pop     ds
+
+        mov     di, bp
+        sub     di, 16*2        ; address of first character
+
+        shl     bp, 1           ; BP := length of one line in bytes
+
+        mov     ax, 3           ; caption offset (lines)
+        mul     bp
+        add     ax, 7*2         ; offset of caption from beginning of the table
+
+        add     ax, di
+        push    ax
+        call    printCaption
+        add     sp, 2
+
+        mov     ax, (25-14)/2   ; vertical offset
+        mul     bp
+
+        add     di, ax
+
+        xor     si, si          ; character
+        xor     cx, cx          ; lines counter
 
 @@printLoop:
 
@@ -184,6 +196,55 @@ printAsciiLine proc c near uses di bx cx
 printAsciiLine endp
 
 
+printCaption proc c near uses ax cx di si
+        arg @@startAddress:word
+
+        mov     di, [@@startAddress]
+
+        mov     ah, 07h
+
+        lea     si, [modeStr]
+        mov     cx, modeStrLen
+
+@@print1:
+        lodsb
+        stosw
+        dec     cx
+        jnz     @@print1
+
+        mov     al, [currentVideoMode]
+        add     al, 30h
+        stosw
+
+        mov     al, 20h
+        mov     cx, 3
+        rep     stosw
+
+        lea     si, [pageStr]
+        mov     cx, pageStrLen
+
+@@print2:
+        lodsb
+        stosw
+        dec     cx
+        jnz     @@print2
+
+        mov     al, [currentVideoPage]
+        add     al, 30h
+        stosw
+
+        ret
+
+printCaption endp
+
+
+modeStr db "mode: "
+modeStrLen = $ - modeStr
+
+pageStr db "page: "
+pageStrLen = $ - pageStr
+
+
 waitKey proc near
 
         mov     ax, kbdRead
@@ -196,11 +257,11 @@ waitKey endp
 changeVideoMode proc near
 
         mov     ah, videoSetPage
-        mov     ax, [currentVideoPage]
+        mov     al, [currentVideoPage]
         int     videoInterrupt
 
         mov     ah, videoSetMode
-        mov     ax, [currentVideoMode]
+        mov     al, [currentVideoMode]
         int     videoInterrupt
 
         ret
@@ -377,8 +438,8 @@ oldVideoMode db ?
 
 oldCursorPosition dw ?
 
-currentVideoMode dw ?
-currentVideoPage dw ?
+currentVideoMode db ?
+currentVideoPage db ?
 
 screenBuffer db videoPageLengthBytes dup(?)
 

@@ -31,7 +31,7 @@ loadPageModeArgs proc c near uses bx cx dx si di
         mov     al, [bx]
         sub     al, 30h
 
-        stosw
+        stosb
 
         add     si, sizeOfToken
         dec     cx
@@ -44,7 +44,9 @@ loadPageModeArgs endp
 
 checkPageModeCorrect proc near
 
-        mov     ax, [currentVideoPage]
+        xor     ax, ax
+
+        mov     al, [currentVideoPage]
 
         test    ax, ax
         jl      printUsageAndExit
@@ -52,7 +54,7 @@ checkPageModeCorrect proc near
         cmp     ax, 7
         jg      printUsageAndExit
 
-        mov     ax, [currentVideoMode]
+        mov     al, [currentVideoMode]
 
         test    ax, ax
         jl      printUsageAndExit
