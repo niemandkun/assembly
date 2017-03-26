@@ -196,11 +196,11 @@ waitKey endp
 changeVideoMode proc near
 
         mov     ah, videoSetPage
-        mov     al, 1
+        mov     ax, [currentVideoPage]
         int     videoInterrupt
 
         mov     ah, videoSetMode
-        mov     al, 3
+        mov     ax, [currentVideoMode]
         int     videoInterrupt
 
         ret
@@ -328,8 +328,13 @@ getCurrentVideoParams endp
 
 initRandom proc c near uses ax cx dx
 
+
+@@cycle:
         mov     ah, dosGetTime
         int     dosInterrupt
+
+        test    dx, dx
+        jz      @@cycle
 
         mov     cs:[randomSeed], dx
 
