@@ -363,6 +363,10 @@ oldVideoMode db ?
 
 oldCursorPosition dw ?
 
+include args.asm
+
+include string.asm
+
 screenBuffer db videoPageLengthBytes dup(?)
 
 
