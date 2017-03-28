@@ -3,6 +3,7 @@
 
 biosRomSegment = 0040h
 biosVideoSegment = 0B800h
+biosVideoMemory = 0B000h
 biosTextColumnsCount = 004Ah
 biosActiveVideoPage = 0062h
 biosActiveVideoMode = 0049h
@@ -256,12 +257,12 @@ waitKey endp
 
 changeVideoMode proc near
 
-        mov     ah, videoSetPage
-        mov     al, [currentVideoPage]
-        int     videoInterrupt
-
         mov     ah, videoSetMode
         mov     al, [currentVideoMode]
+        int     videoInterrupt
+
+        mov     ah, videoSetPage
+        mov     al, [currentVideoPage]
         int     videoInterrupt
 
         ret
@@ -356,7 +357,7 @@ restoreCursor proc c near uses bx dx
 restoreCursor endp
 
 
-getPageStart proc c near uses cx es
+getPageStart proc c near uses cx es bx
 
         mov     ax, biosRomSegment
         mov     es, ax
@@ -365,8 +366,18 @@ getPageStart proc c near uses cx es
         mov     cl, 4
         shr     ax, cl
 
-        add     ax, biosVideoSegment
+        mov     bl, es:[biosActiveVideoMode]
+        cmp     bl, 7
+        je      @@7thMode
 
+@@otherMode:
+        add     ax, biosVideoSegment
+        jmp     @@finish
+
+@@7thMode:
+        add     ax, biosVideoMemory
+
+@@finish:
         ret
 
 getPageStart endp

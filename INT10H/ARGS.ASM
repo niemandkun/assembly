@@ -42,29 +42,38 @@ loadPageModeArgs proc c near uses bx cx dx si di
 loadPageModeArgs endp
 
 
-checkPageModeCorrect proc near
+checkPageModeCorrect proc c near uses bx
 
         xor     ax, ax
 
-        mov     al, [currentVideoPage]
-
-        test    ax, ax
-        jl      printUsageAndExit
-
-        cmp     ax, 7
-        jg      printUsageAndExit
-
         mov     al, [currentVideoMode]
+        mov     ah, [currentVideoPage]
 
-        test    ax, ax
+        cmp     al, 7
+        je      @@checkMode
+
+        test    al, al
         jl      printUsageAndExit
 
-        cmp     ax, 3
+        cmp     al, 3
         jg      printUsageAndExit
+
+@@checkMode:
+        test    ah, ah
+        jl      printUsageAndExit
+
+        xor     bx, bx
+        mov     bl, al
+        add     bx, offset numPages
+        cmp     ah, cs:[bx]
+        jge     printUsageAndExit
 
         ret
 
 checkPageModeCorrect endp
+
+
+numPages db 8, 8, 4, 4, 7 dup(1)
 
 
 printUsageAndExit proc near
@@ -80,8 +89,15 @@ printUsageAndExit endp
 usage db 0Ah
       db "Usage: 2.COM MODE PAGE", 0Ah, 0Ah
       db "Print fullscreen ASCII-table and exit by pressing any key.", 0Ah, 0Ah
-      db "MODE: 0..3 - video mode to use.", 0Ah
-      db "PAGE: 0..7 - video page to print table.", 0Ah, 24h
+      db "MODE: 0..3,7 - video mode to use.", 0Ah
+      db "PAGE: 0..7 - video page to print table.", 0Ah, 0Ah
+      db "    Mode   Valid Pages", 0Ah
+      db "      0       0 - 7   ", 0Ah
+      db "      1       0 - 7   ", 0Ah
+      db "      2       0 - 3   ", 0Ah
+      db "      3       0 - 3   ", 0Ah
+      db "      7         0     ", 0Ah
+      db 24h
 
 
 parseArgsCom proc c near uses dx
