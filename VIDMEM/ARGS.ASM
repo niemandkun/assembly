@@ -32,8 +32,11 @@ monoBrightBlink db 'BRIGHTBLINK', 00h
 
 parseArgs proc c near uses bx cx dx
 
-        lea     bx, [tokens]
         mov     cx, [tokensCount]
+        test    cx, cx
+        jz      @@finish
+
+        lea     bx, [tokens]
 
 @@checkLoop:
         push    bx
