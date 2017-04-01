@@ -439,6 +439,10 @@ getRandom endp
 
 captionColor db 07h
 
+currentVideoParams:
+currentVideoMode db 03h
+currentVideoPage db 00h
+
 
 include string.asm
 
@@ -452,10 +456,6 @@ oldVideoPage db ?
 oldVideoMode db ?
 
 oldCursorPosition dw ?
-
-currentVideoParams:
-currentVideoMode db ?
-currentVideoPage db ?
 
 screenBuffer db videoPageLengthBytes dup(?)
 

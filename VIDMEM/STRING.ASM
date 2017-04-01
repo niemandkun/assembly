@@ -1,6 +1,8 @@
 upperCaseZ = "Z"
 upperCaseA = "A"
+upperCaseF = "F"
 lowerCaseA = "a"
+lowerCaseF = "f"
 lowerCaseZ = "z"
 space = " "
 backSlash = "\"
@@ -8,29 +10,73 @@ backSlash = "\"
 toLowerDelta = lowerCaseA - upperCaseA
 toUpperDelta = -toLowerDelta
 
-numbersOffset = "0"
+digitsOffset = "0"
+lowerCaseOffset = lowerCaseA - 10
+upperCaseOffset = upperCaseA - 10
 
-parseByte proc c near uses
-        arg @@strPtr:word,
+
+parseByte proc c near uses si bx
+        arg @@strPtr:word
+        ; returns: al - byte, ah = 0 on succes
+        ; al = ?, ah = 1 on error
 
         mov     si, [@@strPtr]
 
         xor     ax, ax
 
         lodsb
-        sub     al, numbersOffset
+        call    parseDigit
+        test    ah, ah
+        jnz     @@finish
+
         mov     cl, 4
         shl     ax, cl
-        xchg    al, ah
+        mov     bl, al
 
         lodsb
-        sub     al, numbersOffset
-        add     al, ah
+        call    parseDigit
+        test    ah, ah
+        jnz     @@finish
 
-        xor     ah, ah
+        add     al, bl
+
+@@finish:
         ret
 
 parseByte endp
+
+
+parseDigit:
+        ;   args: al -- hexadecimal digit character
+        ;   returns: al = number if no errors, ah = 1 otherwise
+
+        cmp     al, lowerCaseA
+        jb      @@upper
+        cmp     al, lowerCaseF
+        ja      @@error
+        sub     al, lowerCaseOffset
+        ret
+
+@@upper:
+        cmp     al, upperCaseA
+        jb      @@digit
+        cmp     al, upperCaseF
+        ja      @@error
+        sub     al, upperCaseOffset
+        ret
+
+@@digit:
+        cmp     al, "0"
+        jb      @@error
+        cmp     al, "9"
+        ja      @@error
+        sub     al, digitsOffset
+        ret
+
+@@error:
+        mov     ah, 1
+        ret
+
 
 strToLower proc c near uses ax cx si di
         arg @@strPtr:word, @@strLength:word

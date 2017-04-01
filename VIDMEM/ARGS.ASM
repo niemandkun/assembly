@@ -102,6 +102,8 @@ processParameter proc c near uses bx cx si di
         push    bx
         call    parseByte
         add     sp, 2
+        test    ah, ah
+        jnz     printUsageAndExit
         mov     [captionColor], al
         mov     ax, 2
         jmp     @@finish
