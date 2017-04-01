@@ -129,6 +129,20 @@ clearScreen endp
 
 showAscii proc c near uses es bx dx di cx
 
+        mov     al, [currentVideoMode]
+        cmp     al, 7
+        jne     @@useRandomLastLine
+
+        lea     dx, [mode7color]
+        mov     [lastLine], dx
+        jmp     @@beginPrint
+
+@@useRandomLastLine:
+        lea     dx, [random]
+        mov     [lastLine], dx
+
+@@beginPrint:
+
         call    getPageStart
         mov     es, ax
 
@@ -208,6 +222,9 @@ colorful:
         mov     ah, al
         ret
 
+mode7color:
+        mov     ah, [monoColor]
+        ret
 
 random:
         push    bx
@@ -228,7 +245,8 @@ random:
         ret
 
 
-lines dw colorful, blinking, cyan, magenta, 12 dup(random)
+lines dw colorful, blinking, cyan, magenta, 11 dup(random)
+lastLine dw mode7color
 
 
 printAsciiLine proc c near uses di bx cx
@@ -503,7 +521,7 @@ currentVideoPage db 00h
 
 disableBlink db 00h
 
-monoColor db 00h
+monoColor db 02h
 
 include string.asm
 

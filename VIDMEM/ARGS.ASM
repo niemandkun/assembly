@@ -21,8 +21,8 @@ captionFlagShort db '/C', 00h
 noblinkFlag db '/NOBLINK', 00h
 noblinkFlagShort db '/N', 00h
 
-monoFlag db '/MONO', 00h
-monoFlagShort db '/7', 00h
+monoFlag db '/LASTLINE', 00h
+monoFlagShort db '/LL', 00h
 
 monoBright db 'BRIGHT', 00h
 monoBlink db 'BLINK', 00h
@@ -142,7 +142,7 @@ processParameter proc c near uses bx cx si di
         lea     dx, [monoFlagShort]
         call    flagCmp
         test    ax, ax
-        jnz     @@mode
+        jnz     @@noblink
 
         add     bx, sizeOfToken
         call    storeMonoBg
@@ -274,17 +274,17 @@ printUsageAndExit endp
 
 
 usage db                                                                                0Ah
-      db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/7 MODE] [/?]",             0Ah
+      db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/LL LASTLINE] [/?]",        0Ah
       db                                                                                0Ah
       db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
       db                                                                                0Ah
       db "Parameters:",                                                                 0Ah
-      db "    /N, /NOBLINK  - disable blinking",                                        0Ah
-      db "    /M, /MODE     - video mode to use (default 3)",                           0Ah
-      db "    /P, /PAGE     - video page to use (default 0)",                           0Ah
-      db "    /C, /CAPTION  - set color for caption",                                   0Ah
-      db "    /7, /MONO     - set output mode for last line in mode 7h",                0Ah
-      db "                    possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",   0Ah
+      db "    /N, /NOBLINK   - disable blinking",                                       0Ah
+      db "    /M, /MODE      - video mode to use (default 3)",                          0Ah
+      db "    /P, /PAGE      - video page to use (default 0)",                          0Ah
+      db "    /C, /CAPTION   - set color for caption",                                  0Ah
+      db "    /LL, /LASTLINE - set output mode for last line in mode 7h",               0Ah
+      db "                     possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",  0Ah
       db                                                                                0Ah
       db "    /?, /HELP     - show this help message and exit",                         0Ah
       db                                                                                0Ah
