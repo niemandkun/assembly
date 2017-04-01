@@ -265,7 +265,7 @@ numPages db 8, 8, 4, 4, 7 dup(1)
 
 printUsageAndExit proc near
 
-        lea     dx, [usage]
+        lea     dx, [help]
         mov     ah, 09h
         int     21h
         int     20h
@@ -273,28 +273,28 @@ printUsageAndExit proc near
 printUsageAndExit endp
 
 
-usage db                                                                                0Ah
-      db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/LL LASTLINE] [/?]",        0Ah
-      db                                                                                0Ah
-      db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
-      db                                                                                0Ah
-      db "Parameters:",                                                                 0Ah
-      db "    /N, /NOBLINK   - disable blinking",                                       0Ah
-      db "    /M, /MODE      - video mode to use (default 3)",                          0Ah
-      db "    /P, /PAGE      - video page to use (default 0)",                          0Ah
-      db "    /C, /CAPTION   - set color for caption",                                  0Ah
-      db "    /LL, /LASTLINE - set output mode for last line in mode 7h",               0Ah
-      db "                     possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",  0Ah
-      db                                                                                0Ah
-      db "    /?, /HELP     - show this help message and exit",                         0Ah
-      db                                                                                0Ah
-      db "    Mode   Valid Pages",                                                      0Ah
-      db "      0       0 - 7   ",                                                      0Ah
-      db "      1       0 - 7   ",                                                      0Ah
-      db "      2       0 - 3   ",                                                      0Ah
-      db "      3       0 - 3   ",                                                      0Ah
-      db "      7         0     ",                                                      0Ah
-      db                                                                                24h
+help db                                                                                0Ah
+     db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/LL LASTLINE] [/?]",        0Ah
+     db                                                                                0Ah
+     db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
+     db                                                                                0Ah
+     db "Parameters:",                                                                 0Ah
+     db "    /N, /NOBLINK   - Disable blinking",                                       0Ah
+     db "    /M, /MODE      - Video mode to use (default 3)",                          0Ah
+     db "    /P, /PAGE      - Video page to use (default 0)",                          0Ah
+     db "    /C, /CAPTION   - Set color for caption",                                  0Ah
+     db "    /LL, /LASTLINE - Set output mode for last line in mode 7h",               0Ah
+     db "                     possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",  0Ah
+     db                                                                                0Ah
+     db "    /?, /HELP      - Show this help message and exit",                        0Ah
+     db                                                                                0Ah
+     db "    Mode   Valid Pages",                                                      0Ah
+     db "      0       0 - 7   ",                                                      0Ah
+     db "      1       0 - 7   ",                                                      0Ah
+     db "      2       0 - 3   ",                                                      0Ah
+     db "      3       0 - 3   ",                                                      0Ah
+     db "      7         0     ",                                                      0Ah
+     db                                                                                24h
 
 
 splitArgsCom proc c near uses dx
