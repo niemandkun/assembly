@@ -15,7 +15,7 @@ lowerCaseOffset = lowerCaseA - 10
 upperCaseOffset = upperCaseA - 10
 
 
-parseByte proc c near uses si bx
+parseByte proc c near uses si bx cx
         arg @@strPtr:word
         ; returns: al - byte, ah = 0 on succes
         ; al = ?, ah = 1 on error

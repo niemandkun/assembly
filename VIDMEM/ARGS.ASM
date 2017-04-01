@@ -10,8 +10,24 @@ argvPtr = argcPtr + 1
 
 
 modeFlag db '/MODE', 00h
+modeFlagShort db '/M', 00h
+
 pageFlag db '/PAGE', 00h
+pageFlagShort db '/P', 00h
+
 captionFlag db '/CAPTION', 00h
+captionFlagShort db '/C', 00h
+
+noblinkFlag db '/NOBLINK', 00h
+noblinkFlagShort db '/N', 00h
+
+monoFlag db '/MONO', 00h
+monoFlagShort db '/7', 00h
+
+monoBright db 'BRIGHT', 00h
+monoBlink db 'BLINK', 00h
+monoReverse db 'REVERSED', 00h
+monoBrightBlink db 'BRIGHTBLINK', 00h
 
 
 parseArgs proc c near uses bx cx dx
@@ -38,6 +54,78 @@ parseArgs proc c near uses bx cx dx
 parseArgs endp
 
 
+flagCmp proc
+        ;   si -- parameter
+        ;   di -- flag
+        ;   dx -- short flag
+
+        push    si
+
+        push    dx
+        call    strCompare
+        add     sp, 2
+        mov     dx, ax
+
+        push    di
+        call    strCompare
+        add     sp, 4
+
+        and     ax, dx
+
+        ret
+
+flagCmp endp
+
+
+singleFlagCmp macro flag
+        lea     di, [flag]
+        push    di
+        push    si
+        call    strCompare
+        add     sp, 2+2
+        test    ax, ax
+endm
+
+
+storeMonoBg proc
+        ; bx -- pointer to Token
+        ; ret: ax = 1 if error, 0 otherwise
+
+        mov     si, [bx].@ptr
+        test    si, si
+        jz      @@error
+
+@@bright:
+        singleFlagCmp monoBright
+        jnz     @@blink
+        mov     [monoColor], 09h
+        ret
+
+@@blink:
+        singleFlagCmp monoBlink
+        jnz     @@reverse
+        mov     [monoColor], 82h
+        ret
+
+@@reverse:
+        singleFlagCmp monoReverse
+        jnz     @@brightBlink
+        mov     [monoColor], 10h
+        ret
+
+@@brightBlink:
+        singleFlagCmp monoBrightBlink
+        jnz     @@error
+        mov     [monoColor], 89h
+        ret
+
+@@error:
+        mov     ax, 1
+        ret
+
+storeMonoBg endp
+
+
 processParameter proc c near uses bx cx si di
         arg @@tokenPtr:word
 
@@ -46,12 +134,37 @@ processParameter proc c near uses bx cx si di
         mov     si, [bx].@ptr
         mov     cx, [bx].@length
 
+@@mono:
+        lea     di, [monoFlag]
+        lea     dx, [monoFlagShort]
+        call    flagCmp
+        test    ax, ax
+        jnz     @@mode
+
+        add     bx, sizeOfToken
+        call    storeMonoBg
+        test    ax, ax
+        jnz     @@invalid
+
+        mov     ax, 2
+        jmp     @@finish
+
+@@noblink:
+        lea     di, [noblinkFlag]
+        lea     dx, [noblinkFlagShort]
+        call    flagCmp
+        test    ax, ax
+        jnz     @@mode
+
+        mov     [disableBlink], 1
+
+        mov     ax, 1
+        jmp     @@finish
+
 @@mode:
         lea     di, [modeFlag]
-        push    di
-        push    si
-        call    strCompare
-        add     sp, 2*2
+        lea     dx, [modeFlagShort]
+        call    flagCmp
         test    ax, ax
         jnz     @@page
 
@@ -60,10 +173,8 @@ processParameter proc c near uses bx cx si di
 
 @@page:
         lea     di, [pageFlag]
-        push    di
-        push    si
-        call    strCompare
-        add     sp, 2*2
+        lea     dx, [pageFlagShort]
+        call    flagCmp
         test    ax, ax
         jnz     @@caption
 
@@ -86,12 +197,10 @@ processParameter proc c near uses bx cx si di
 
 @@caption:
         lea     di, [captionFlag]
-        push    di
-        push    si
-        call    strCompare
-        add     sp, 2*2
+        lea     dx, [captionFlagShort]
+        call    flagCmp
         test    ax, ax
-        jnz     @@finish
+        jnz     @@invalid
 
         add     bx, sizeOfToken
         mov     si, [bx].@length
@@ -161,18 +270,28 @@ printUsageAndExit proc near
 printUsageAndExit endp
 
 
-usage db 0Ah
-      db "Usage: 2.COM MODE PAGE", 0Ah, 0Ah
-      db "Print fullscreen ASCII-table and exit by pressing any key.", 0Ah, 0Ah
-      db "MODE: 0..3,7 - video mode to use.", 0Ah
-      db "PAGE: 0..7 - video page to print table.", 0Ah, 0Ah
-      db "    Mode   Valid Pages", 0Ah
-      db "      0       0 - 7   ", 0Ah
-      db "      1       0 - 7   ", 0Ah
-      db "      2       0 - 3   ", 0Ah
-      db "      3       0 - 3   ", 0Ah
-      db "      7         0     ", 0Ah
-      db 24h
+usage db                                                                                0Ah
+      db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/7 MODE] [/?]",             0Ah
+      db                                                                                0Ah
+      db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
+      db                                                                                0Ah
+      db "Parameters:",                                                                 0Ah
+      db "    /N, /NOBLINK  - disable blinking",                                        0Ah
+      db "    /M, /MODE     - video mode to use (default 3)",                           0Ah
+      db "    /P, /PAGE     - video page to use (default 0)",                           0Ah
+      db "    /C, /CAPTION  - set color for caption",                                   0Ah
+      db "    /7, /MONO     - set output mode for last line in mode 7h",                0Ah
+      db "                    possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",   0Ah
+      db                                                                                0Ah
+      db "    /?, /HELP     - show this help message and exit",                         0Ah
+      db                                                                                0Ah
+      db "    Mode   Valid Pages",                                                      0Ah
+      db "      0       0 - 7   ",                                                      0Ah
+      db "      1       0 - 7   ",                                                      0Ah
+      db "      2       0 - 3   ",                                                      0Ah
+      db "      3       0 - 3   ",                                                      0Ah
+      db "      7         0     ",                                                      0Ah
+      db                                                                                24h
 
 
 splitArgsCom proc c near uses dx

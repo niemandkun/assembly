@@ -5,10 +5,14 @@
 biosRomSegment = 0040h
 biosVideoSegment = 0B800h
 biosVideoMemory = 0B000h
-biosTextColumnsCount = 004Ah
-biosActiveVideoPage = 0062h
+
 biosActiveVideoMode = 0049h
+biosTextColumnsCount = 004Ah
 biosVideoPageOffset = 004Eh
+biosCursorPosition = 0050h
+biosActiveVideoPage = 0062h
+biosVideoCardPort = 0063h
+biosVideoCrtMode = 0065h
 
 videoInterrupt = 10h
 videoSetMode = 00h
@@ -41,6 +45,8 @@ start:
         call    changeVideoMode
         call    clearScreen
 
+        call    disableBlinkIfNeed
+
         call    initRandom
         call    showAscii
 
@@ -50,7 +56,59 @@ start:
         call    restoreScreenState
         call    restoreCursor
 
+        call    restoreBlink
+
         ret
+
+
+restoreBlink proc c near uses ax es dx bx
+
+        ; CGA and MDA
+        mov     ax, biosRomSegment
+        mov     es, ax
+        mov     dx, es:[biosVideoCardPort]
+        add     dx, 4
+
+        mov     bl, cs:[oldCrtRegister]
+        and     bl, 20h                     ; mask value by 0010 0000 (to keep bit 5)
+        mov     al, es:[biosVideoCrtMode]
+        or      al, bl
+
+        out     dx, al
+        mov     es:[biosVideoCrtMode], al
+
+        ret
+
+restoreBlink endp
+
+
+disableBlinkIfNeed proc c near uses bx dx es
+
+        mov     bl, [disableBlink]
+        test    bl, bl
+        jz      @@finish
+
+        ; VGA and EGA:
+        mov     ax, 1003h
+        xor     bx, bx
+        int     videoInterrupt
+
+        ; CGA and MDA:
+        mov     ax, biosRomSegment
+        mov     es, ax
+        mov     dx, es:[biosVideoCardPort]  ; get port address of the card
+        add     dx, 4                       ; 3x8h register
+
+        mov     al, es:[biosVideoCrtMode]   ; get current value of Mode Select Register
+        and     al, 0DFh                    ; mask value by 1101 1111 (to clear bit 5)
+        out     dx, al                      ; disable blink
+        mov     es:[biosVideoCrtMode], al   ; save the new setting
+        mov     cs:[oldCrtRegister], al
+
+@@finish:
+        ret
+
+disableBlinkIfNeed endp
 
 
 clearScreen proc c near uses es di ax cx
@@ -332,11 +390,11 @@ restoreScreenState endp
 
 saveCursor proc c near uses bx dx
 
-        call    getCurrentVideoParams
-        mov     bh, al
+        mov     ax, biosRomSegment
+        mov     es, ax
 
-        mov     ah, videoGetCursor
-        int     videoInterrupt
+        mov     dx, es:[biosCursorPosition]
+
 
         mov     [oldCursorPosition], dx
 
@@ -443,6 +501,9 @@ currentVideoParams:
 currentVideoMode db 03h
 currentVideoPage db 00h
 
+disableBlink db 00h
+
+monoColor db 00h
 
 include string.asm
 
@@ -454,6 +515,8 @@ randomSeed dw ?
 oldVideoParams:
 oldVideoPage db ?
 oldVideoMode db ?
+
+oldCrtRegister db ?
 
 oldCursorPosition dw ?
 
