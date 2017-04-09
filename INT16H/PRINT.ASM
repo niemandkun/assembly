@@ -33,29 +33,21 @@ printSegmentOffset endp
 putChar proc c near uses ax dx
         arg @@charToPrint:word
 
-        mov     dx, [@@charToPrint]
+        mov     ax, [@@charToPrint]
+        mov     ah, 0Ah
+        mov     cx, 1
+        xor     bx, bx
+        int     10h
 
-        cmp     dl, 24h
-        je      printSpace
+        mov     ah, 03h
+        xor     bx, bx
+        int     10h
 
-        cmp     dl, 1Bh
-        je      printSpace
+        inc     dl
 
-        cmp     dl, 0Dh
-        je      printSpace
-
-        cmp     dl, 07h
-        jb      printChar
-
-        cmp     dl, 0Ah
-        ja      printChar
-
-printSpace:
-        mov     dl, 20h
-
-printChar:
         mov     ah, 02h
-        int     21h
+        xor     bx, bx
+        int     10h
 
         ret
 
