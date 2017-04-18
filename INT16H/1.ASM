@@ -55,6 +55,7 @@ printKeyInfo proc c near uses bx
         call    printTab
 
         xor     ax, ax
+        mov     bx, [@@keyCode]
         mov     al, bh
         push    ax
         call    printByte
