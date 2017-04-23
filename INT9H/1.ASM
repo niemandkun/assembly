@@ -14,6 +14,8 @@ old9:
 old9segment dw ?
 old9offset dw ?
 escCount dw 0
+depth dw 1
+lastKey dw ?
 
 int9 proc near
         push    ax
@@ -39,48 +41,90 @@ begin proc near
         call    bufferRead
         jc      @@printKeyLoop
 
-        push    ax
-        call    printByte
-        call    printNewLine
-        pop     ax
+        mov     bx, ax
 
-        cmp     ax, 01h
+        cmp     bx, 81h
         je      @@esc
+        cmp     bx, 01h
+        je      @@compare
+        mov     escCount, 0
 
-        cmp     ax, 0E0h
+@@compare:
+        cmp     bx, 0E0h
         je      @@other
-
         and     ax, 80h
         test    ax, ax
-        jnz     @@release
+        jz      @@press
+        jmp     @@release
 
-@@other:
-        mov     escCount, 0
+@@press:
+        cmp     depth, 0
+        je      @@pressPrintKey
+        cmp     lastKey, bx
+        je      @@pressRepeat
+        lea     dx, [openSep]
+        call    print
+@@pressPrintKey:
+        inc     depth
+@@pressRepeat:
+        mov     lastKey, bx
+        call    printKey
+        lea     dx, [spaceSep]
+        call    print
         jmp     @@printKeyLoop
 
 @@release:
-        mov     ah, 09h
-        lea     dx, [separator]
-        int     21h
+        mov     lastKey, bx
+        call    printKey
+        dec     depth
+        cmp     depth, 0
+        je      @@releaseZeroDepth
+        lea     dx, [closeSep]
+        call    print
+        jmp     @@printKeyLoop
+@@releaseZeroDepth:
+        lea     dx, [newlineSep]
+        call    print
+        jmp     @@printKeyLoop
 
+@@other:
+        call    printKey
+        lea     dx, [spaceSep]
+        call    print
         jmp     @@printKeyLoop
 
 @@esc:
         inc     escCount
         cmp     escCount, 3
-        jne     @@printKeyLoop
+        jne     @@compare
 
+@@finish:
+        call    printKey
         call    restoreVector
-
         mov     ah, 09h
         lea     dx, [exitMessage]
         int     21h
-
         int     20h
 begin endp
 
-exitMessage     db  "exit", 0Dh, 0Ah, 24h
-separator       db  "---", 0Dh, 0Ah, 24h
+print proc near
+        mov     ah, 09h
+        int     21h
+        ret
+print endp
+
+printKey proc near
+        push    bx
+        call    printByte
+        pop     bx
+        ret
+printKey endp
+
+exitMessage     db  0Dh, 0Ah, "exit", 0Dh, 0Ah, 24h
+openSep         db  "( ", 24h
+closeSep        db  " ) ", 24h
+spaceSep        db  " ", 24h
+newlineSep      db  0Dh, 0Ah, 24h
 
 setupVector proc near
         push    di
