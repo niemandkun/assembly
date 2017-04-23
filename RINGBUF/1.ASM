@@ -45,7 +45,7 @@ read_buf proc near
         mov     al, byte ptr cs:[bx]
         inc     word ptr cs:tail
         cmp     word ptr cs:tail, offset endbuf
-        jz      @@2
+        jnz     @@2
         mov     word ptr cs:tail, offset buffer
 @@2:
         pop     bx
@@ -84,9 +84,7 @@ begin proc near
         stosw
         mov     ax, bx
         stosw
-        push    cs
-        pop     es
-        mov     bx, offset int9     ; устанавлиаем обработчик
+        mov     dx, offset int9     ; устанавлиаем обработчик
         mov     ax, 2509h
         int     21h
 @@1:
@@ -105,6 +103,7 @@ begin proc near
         add     si, 2
         jmp     @@2
 @@3:
+        lodsw
         call    ax
         jmp     @@1
         ret
@@ -125,7 +124,7 @@ int9 proc near
         iret
 int9 endp
 
-tst    db  "asdf", 24h
+tst    db  "exit", 24h
 
 exit proc near
 
