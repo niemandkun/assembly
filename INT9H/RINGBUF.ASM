@@ -1,4 +1,4 @@
-bufferLength = 20
+bufferLength = 2
 
 buffer  db      bufferLength dup (0)
 
