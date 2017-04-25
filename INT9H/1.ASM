@@ -120,11 +120,11 @@ printKey proc near
         ret
 printKey endp
 
-exitMessage     db  0Dh, 0Ah, "exit", 0Dh, 0Ah, 24h
-openSep         db  "( ", 24h
-closeSep        db  " ) ", 24h
+exitMessage     db  0Dh, 0Ah, 0Dh, 0Ah, "exit", 0Dh, 0Ah, 24h
+openSep         db  "< ", 24h
+closeSep        db  " > ", 24h
 spaceSep        db  " ", 24h
-newlineSep      db  0Dh, 0Ah, 24h
+newlineSep      db  0Dh, 0Ah, 0Dh, 0Ah, 24h
 
 setupVector proc near
         push    di
