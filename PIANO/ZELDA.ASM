@@ -130,6 +130,8 @@ db 46
 dw 240
 db 48
 dw 240
+db 51
+dw 240
 db 50
 dw 480
 db 56
