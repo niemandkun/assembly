@@ -22,9 +22,6 @@ begin proc near
         call    ringBufferRead
         jc      @@keyboardLoop
 
-        call    printKey
-        call    printNewLine
-
         cmp     al, 81h
         je      @@esc
 
@@ -32,6 +29,9 @@ begin proc near
         jc      @@loopFinish
         call    peekKey
         jc      @@noKeyPressed
+
+        call    printKey
+        call    printNewLine
 
         mov     bx, 80h
         mul     bx
