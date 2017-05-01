@@ -118,7 +118,7 @@ playZelda proc c near uses ax bx cx dx si
         xor     ax, ax
         call    setSoundFreq
 
-        mov     cx, 2000h
+        mov     cx, 8000h
 @@delayLoop:
         loop    @@delayLoop
 
