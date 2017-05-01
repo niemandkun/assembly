@@ -8,9 +8,12 @@ start:
 
 include ringbuf.asm
 include keybuf.asm
-include sound.asm
 include print.asm
+include sound.asm
+include zelda.asm
 include int9.asm
+
+f12     dw      0
 
 begin proc near
 
@@ -22,21 +25,28 @@ begin proc near
         call    ringBufferRead
         jc      @@keyboardLoop
 
+        call    printKey
+        call    printNewLine
+
         cmp     al, 81h
         je      @@esc
 
+        cmp     al, 0D8h
+        jne     @@play
+
+        inc     word ptr [f12]
+        cmp     word ptr [f12], 10
+        jne     @@play
+        mov     word ptr [f12], 0
+        call    playZelda
+
+@@play:
         call    putKey
         jc      @@loopFinish
         call    peekKey
         jc      @@noKeyPressed
 
-        call    printKey
-        call    printNewLine
-
-        mov     bx, 80h
-        mul     bx
-        call    setSoundFreq
-        call    soundOn
+        call    playNote
 
 @@loopFinish:
         jmp     @@keyboardLoop
@@ -59,6 +69,62 @@ printKey proc near
         pop     ax
         ret
 printKey endp
+
+
+playZelda proc c near uses ax bx cx dx si
+
+        xor     ax, ax
+        call    setSoundFreq
+
+        call    soundOn
+        mov     si, offset zelda
+
+@@playCycle:
+
+        lodsw
+        cmp     ax, 0ffffh
+        je      @@finish
+
+        mov     dx, ax
+
+        xor     ax, ax
+        lodsb
+
+        sub     ax, 60
+        add     ax, 24
+        mov     cx, 2
+        shl     ax, cl
+        add     ax, 2
+        add     ax, offset scale
+        mov     bx, ax
+        mov     ax, [bx]
+
+        call    setSoundFreq
+
+@@noteLoop:
+        mov     cx, 0800h
+@@1:
+        loop    @@1
+        dec     dx
+        jg      @@noteLoop
+
+        xor     ax, ax
+        call    setSoundFreq
+
+        mov     cx, 2000h
+@@delayLoop:
+        loop    @@delayLoop
+
+        call    ringBufferRead
+        jnc     @@finish
+
+        jmp     @@playCycle
+
+@@finish:
+        call    soundOff
+        ret
+
+playZelda endp
 
 
 end start
