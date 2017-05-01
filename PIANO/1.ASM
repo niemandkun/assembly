@@ -71,7 +71,14 @@ printKey proc near
 printKey endp
 
 
+sword   db      "It's dangerous to go alone! Take this", 0Ah, 0Dh, 24h
+
+
 playZelda proc c near uses ax bx cx dx si
+
+        lea     dx, [sword]
+        mov     ah, 09h
+        int     21h
 
         xor     ax, ax
         call    setSoundFreq
