@@ -1,3 +1,5 @@
+text segment
+
 colon = 3Ah
 newLine = 0Ah
 
@@ -150,3 +152,5 @@ printNumber proc c near uses ax bx cx dx
         ret
 
 printNumber endp
+
+text ends

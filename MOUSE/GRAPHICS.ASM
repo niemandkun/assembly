@@ -1,3 +1,21 @@
+segment buffer_segment
+
+double_buffer   db  64000 dup(?)
+
+buffer_segment ends
+
+
+text segment
+
+draw_scene      proc
+        call    clear_screen
+        call    draw_frame
+        call    draw_circle
+        call    push_buffer
+        ret
+draw_scene      endp
+
+
 clear_screen    proc
         push    es
         mov     ax, buffer_segment
@@ -124,3 +142,4 @@ push_buffer     proc
         ret
 push_buffer     endp
 
+text ends
