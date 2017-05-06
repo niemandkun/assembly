@@ -3,7 +3,6 @@ text segment
 colon = 3Ah
 newLine = 0Ah
 
-
 printSegmentOffset proc c near uses dx
         arg @@segmentAddress:word, @@offset:word
 

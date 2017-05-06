@@ -71,15 +71,19 @@ handle_mouse    proc
         ;      |  | `--- left button (1 = pressed)
         ;      |  `---- right button (1 = pressed)
         ;      `------ unused
+        mov     ax, cs
+        mov     ds, ax
+        mov     es, ax
+
         push    bx
 
         mov     ax, cx
-        sub     ax, cs:old_pos_x
-        mov     cs:old_pos_x, cx
+        sub     ax, old_pos_x
+        mov     old_pos_x, cx
 
         mov     bx, dx
-        sub     bx, cs:old_pos_y
-        mov     cs:old_pos_y, dx
+        sub     bx, old_pos_y
+        mov     old_pos_y, dx
 
         pop     cx
 
@@ -96,6 +100,9 @@ handle_mouse    proc
         call    draw_scene
         retf
 handle_mouse    endp
+
+old_pos_x       dw      0
+old_pos_y       dw      0
 
 text ends
 

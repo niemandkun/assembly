@@ -4,9 +4,6 @@ color:
 circle_color    db      01h
 frame_color     db      0eh
 
-old_pos_x       dw      0
-old_pos_y       dw      0
-
 frame_top       dw      20
 frame_bottom    dw      100
 
@@ -29,14 +26,14 @@ move_frame      proc
         call    clamp_by_scr
         call    clamp_frame
 
-        add     cs:frame_left, ax
-        add     cs:frame_right, ax
+        add     frame_left, ax
+        add     frame_right, ax
 
-        add     cs:frame_top, bx
-        add     cs:frame_bottom, bx
+        add     frame_top, bx
+        add     frame_bottom, bx
 
-        add     cs:circle_x, ax
-        add     cs:circle_y, bx
+        add     circle_x, ax
+        add     circle_y, bx
 
         ret
 move_frame      endp
@@ -49,15 +46,15 @@ clamp_frame     proc
         ; ret:
         ;       none
         push    dx
-        add     ax, cs:frame_left
-        add     bx, cs:frame_top
+        add     ax, frame_left
+        add     bx, frame_top
 
         push    ax
         ; now vertical delta in bx
         xor     ax, ax
-        mov     cx, cs:screen_height
-        sub     cx, cs:frame_bottom
-        add     cx, cs:frame_top
+        mov     cx, screen_height
+        sub     cx, frame_bottom
+        add     cx, frame_top
         call    clamp
 
         ; save clamped vertical delta in dx
@@ -66,16 +63,16 @@ clamp_frame     proc
         pop     bx
         ; now horizontal delta in bx
         xor     ax, ax
-        mov     cx, cs:screen_width
-        sub     cx, cs:frame_right
-        add     cx, cs:frame_left
+        mov     cx, screen_width
+        sub     cx, frame_right
+        add     cx, frame_left
         call    clamp
         ; now clamped horizontal delta in ax
 
         mov     bx, dx
 
-        sub     ax, cs:frame_left
-        sub     bx, cs:frame_top
+        sub     ax, frame_left
+        sub     bx, frame_top
 
         pop     dx
         ret
@@ -93,17 +90,17 @@ move_circle     proc
         call    clamp_by_frame
 
 @@cmp_x:
-        mov     dx, cs:circle_y
-        cmp     dx, cs:frame_top
+        mov     dx, circle_y
+        cmp     dx, frame_top
         je      @@move_x
-        cmp     dx, cs:frame_bottom
+        cmp     dx, frame_bottom
         je      @@move_x
 
 @@cmp_y:
-        mov     dx, cs:circle_x
-        cmp     dx, cs:frame_left
+        mov     dx, circle_x
+        cmp     dx, frame_left
         je      @@move_y
-        cmp     dx, cs:frame_right
+        cmp     dx, frame_right
         je      @@move_y
 
         jmp     @@finish
@@ -113,11 +110,11 @@ move_circle     proc
         jz      @@cmp_y
 
 @@do_move_x:
-        add     cs:circle_x, ax
+        add     circle_x, ax
         jmp     @@finish
 
 @@move_y:
-        add     cs:circle_y, bx
+        add     circle_y, bx
 
 @@finish:
         pop     dx
@@ -135,13 +132,13 @@ clamp_by_scr    proc
         push    dx
         push    cx
 
-        add     ax, cs:circle_x
-        add     bx, cs:circle_y
+        add     ax, circle_x
+        add     bx, circle_y
         push    ax
 
         ; have vertical delta in bx
-        mov     ax, cs:circle_radius
-        mov     cx, cs:screen_height
+        mov     ax, circle_radius
+        mov     cx, screen_height
         sub     cx, ax
         ; after call ax = vertical delta
         call    clamp
@@ -152,8 +149,8 @@ clamp_by_scr    proc
         pop     bx
         ; now horizontal delta in bx
 
-        mov     ax, cs:circle_radius
-        mov     cx, cs:screen_width
+        mov     ax, circle_radius
+        mov     cx, screen_width
         sub     cx, ax
         ; after call ax = horizontal delta
         call    clamp
@@ -161,8 +158,8 @@ clamp_by_scr    proc
         ; remember, that dx = vertical delta
         mov     bx, dx
 
-        sub     ax, cs:circle_x
-        sub     bx, cs:circle_y
+        sub     ax, circle_x
+        sub     bx, circle_y
 
         pop     cx
         pop     dx
@@ -180,13 +177,13 @@ clamp_by_frame  proc
         push    dx
         push    cx
 
-        add     ax, cs:circle_x
-        add     bx, cs:circle_y
+        add     ax, circle_x
+        add     bx, circle_y
         push    ax
 
         ; have vertical delta in bx
-        mov     ax, cs:frame_top
-        mov     cx, cs:frame_bottom
+        mov     ax, frame_top
+        mov     cx, frame_bottom
         ; after call ax = vertical delta
         call    clamp
 
@@ -196,16 +193,16 @@ clamp_by_frame  proc
         pop     bx
         ; now horizontal delta in bx
 
-        mov     ax, cs:frame_left
-        mov     cx, cs:frame_right
+        mov     ax, frame_left
+        mov     cx, frame_right
         ; after call ax = horizontal delta
         call    clamp
 
         ; remember, that dx = vertical delta
         mov     bx, dx
 
-        sub     ax, cs:circle_x
-        sub     bx, cs:circle_y
+        sub     ax, circle_x
+        sub     bx, circle_y
 
         pop     cx
         pop     dx

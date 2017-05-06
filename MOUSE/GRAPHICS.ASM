@@ -31,26 +31,26 @@ clear_screen    endp
 
 
 draw_frame      proc c uses ax bx cx dx
-        mov     cl, cs:frame_color
+        mov     cl, frame_color
 
-        mov     ax, cs:frame_left
+        mov     ax, frame_left
 @@cycle1:
-        mov     bx, cs:frame_top
+        mov     bx, frame_top
         call    set_pixel
-        mov     bx, cs:frame_bottom
+        mov     bx, frame_bottom
         call    set_pixel
         inc     ax
-        cmp     ax, cs:frame_right
+        cmp     ax, frame_right
         jne     @@cycle1
 
-        mov     bx, cs:frame_top
+        mov     bx, frame_top
 @@cycle2:
-        mov     ax, cs:frame_left
+        mov     ax, frame_left
         call    set_pixel
-        mov     ax, cs:frame_right
+        mov     ax, frame_right
         call    set_pixel
         inc     bx
-        cmp     bx, cs:frame_bottom
+        cmp     bx, frame_bottom
         jne     @@cycle2
 
         ret
@@ -59,10 +59,10 @@ draw_frame       endp
 
 draw_circle     proc c uses ax bx cx si di
         finit
-        fild    cs:circle_radius
+        fild    circle_radius
         fmul    st(0), st(0)
 
-        mov     si, cs:circle_radius
+        mov     si, circle_radius
 
 @@cycle1:
         push    si
@@ -75,20 +75,20 @@ draw_circle     proc c uses ax bx cx si di
         fistp   word ptr ss:[bx]
         pop     di
 
-        mov     cl, cs:circle_color
+        mov     cl, circle_color
         mov     bx, di
-        add     bx, cs:circle_y
+        add     bx, circle_y
         neg     di
-        add     di, cs:circle_y
+        add     di, circle_y
 
 @@cycle2:
         mov     ax, si
-        add     ax, cs:circle_x
+        add     ax, circle_x
         call    set_pixel
 
         mov     ax, si
         neg     ax
-        add     ax, cs:circle_x
+        add     ax, circle_x
         call    set_pixel
 
         dec     bx
@@ -127,6 +127,7 @@ set_pixel       endp
 
 push_buffer     proc
         push    es
+        push    ds
         mov     ax, 0a000h
         mov     es, ax
 
@@ -138,6 +139,7 @@ push_buffer     proc
         mov     cx, 32000
         rep     movsw
 
+        pop     ds
         pop     es
         ret
 push_buffer     endp
