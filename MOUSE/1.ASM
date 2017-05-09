@@ -23,6 +23,9 @@ start:
         ;mov     ax, 1
         ;int     33h
 
+        ; init random numbers generator
+        call    init_random
+
         ; draw initial scene
         call    draw_scene
 
@@ -37,7 +40,7 @@ start:
         ;   |  `------- right button released
         ;   `--------- unused
 
-        mov     cx, 01h
+        mov     cx, 09h
         lea     dx, [handle_mouse]
         mov     ax, 0ch
         int     33h
@@ -71,12 +74,28 @@ handle_mouse    proc
         ;      |  | `--- left button (1 = pressed)
         ;      |  `---- right button (1 = pressed)
         ;      `------ unused
+        push    ax
         mov     ax, cs
         mov     ds, ax
         mov     es, ax
 
+        ; test 3th bit of ax is on
+        ; (right mouse button pressed)
+        pop     ax
+        test    ax, 8h
+        jz      @@mouse_moved
+
+        ; right mouse button is pressed:
+        call    get_random
+        mov     circle_color, al
+        mov     frame_color, ah
+        jmp     @@finish
+
+        ; right mouse button is not pressed:
+@@mouse_moved:
         push    bx
 
+        ; update mouse position:
         mov     ax, cx
         sub     ax, old_pos_x
         mov     old_pos_x, cx
@@ -86,7 +105,6 @@ handle_mouse    proc
         mov     old_pos_y, dx
 
         pop     cx
-
         test    cx, 1
         jnz     @@move_frame
 
@@ -108,6 +126,7 @@ text ends
 
 include model.asm
 include print.asm
+include random.asm
 include graphics.asm
 
 end start
