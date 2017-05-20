@@ -51,38 +51,35 @@ start:
         call    ax
         jmp     @@1
 
-exit proc near
+
+;       handlers:
+
+exit:
         call    restore_vector
         mov     ah, 4ch
         int     21h
-exit endp
 
-on_tick proc near
+on_tick:
         push    ax
         call    print_word
         pop     ax
         ret
-on_tick endp
 
-key_up proc near
+key_up:
         print
         ret
-key_up endp
 
-key_down proc near
+key_down:
         print
         ret
-key_down endp
 
-key_left proc near
+key_left:
         print
         ret
-key_left endp
 
-key_right proc near
+key_right:
         print
         ret
-key_right endp
 
 text ends
 
