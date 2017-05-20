@@ -3,21 +3,23 @@
 
 .stack
 
+include com.asm
 include string.asm
+include print.asm
 include args.asm
 include ringbuf.asm
-include int9.asm
-include print.asm
+include inter.asm
 
 text segment
         assume  cs:text, ds:text, es:text
 
-handler:        ; смещения обработчиков для каждой команды
-        dw      0,      offset exit
-        dw      1,      offset key_up
-        dw      2,      offset key_right
-        dw      3,      offset key_left
-        dw      4,      offset key_down
+handler:        ; offsets of handlers for each command
+        dw      com_exit,   offset exit
+        dw      com_up,     offset key_up
+        dw      com_right,  offset key_right
+        dw      com_left,   offset key_left
+        dw      com_down,   offset key_down
+        dw      com_tick,   offset on_tick
         dw      0FFFFh
 
 start:
@@ -49,12 +51,18 @@ start:
         call    ax
         jmp     @@1
 
-
 exit proc near
         call    restore_vector
         mov     ah, 4ch
         int     21h
 exit endp
+
+on_tick proc near
+        push    ax
+        call    print_word
+        pop     ax
+        ret
+on_tick endp
 
 key_up proc near
         print
