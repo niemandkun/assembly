@@ -76,6 +76,7 @@ on_tick:
         cmp     ticks, 20
         jne     @@finish
 
+        call    update_model
         call    draw_scene
         mov     ticks, 0
 
@@ -83,19 +84,23 @@ on_tick:
         ret
 
 key_up:
-        print
+        mov     velocity_x, 0
+        mov     velocity_y, 1
         ret
 
 key_down:
-        print
+        mov     velocity_x, 0
+        mov     velocity_y, -1
         ret
 
 key_left:
-        print
+        mov     velocity_x, -1
+        mov     velocity_y, 0
         ret
 
 key_right:
-        print
+        mov     velocity_x, 1
+        mov     velocity_y, 0
         ret
 
 text ends

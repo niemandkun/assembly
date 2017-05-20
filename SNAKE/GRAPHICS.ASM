@@ -68,8 +68,6 @@ draw_tiles      proc c near uses ax bx cx si ds es
         push    ds
         push    es
 
-        mov     cx, 0002h      ; color
-
         mov     ax, tiles
         mov     ds, ax
 
@@ -110,6 +108,8 @@ draw_tile       proc
         ;       none
 
         ; TODO
+        mov     cx, [si].@snake_next
+        add     cl, 9
         call    set_pixel
 
         ret
