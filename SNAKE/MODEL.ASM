@@ -1,4 +1,22 @@
+tiles segment
+
+Tile struc
+    @snake_next dw ?
+    @bonus dw ?
+    @wall dw ?
+Tile ends
+
+size_of_tile = 6
+
+Tile 640 dup(?)
+
+tiles_end_ex = $
+
+tiles ends
+
+
 text segment
+        assume  cs:text
 
 clamp           proc
         ; args:

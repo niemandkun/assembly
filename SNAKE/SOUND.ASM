@@ -111,7 +111,7 @@ set_sound_freq proc near
 set_sound_freq endp
 
 
-ticks dw 0
+sound_ticks dw 0
 note dw 0
 duration dw 0
 
@@ -127,13 +127,13 @@ start_player endp
 
 
 update_player proc c near uses ax bx
-        mov     ax, ticks
+        mov     ax, sound_ticks
         mov     bx, duration
         cmp     ax, bx
         jge     @@play_next_note
 
         add     ax, 24
-        mov     ticks, ax
+        mov     sound_ticks, ax
 
         cmp     ax, bx
         jge     @@mute_note
@@ -142,7 +142,7 @@ update_player proc c near uses ax bx
 
 @@play_next_note:
         xor     ax, ax
-        mov     ticks, ax
+        mov     sound_ticks, ax
 
         call    next_note
         jmp     @@finish

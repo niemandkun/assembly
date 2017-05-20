@@ -11,6 +11,8 @@ include ringbuf.asm
 include inter.asm
 include sound.asm
 include zelda.asm
+include model.asm
+include graphics.asm
 
 text segment
         assume  cs:text, ds:text, es:text
@@ -33,6 +35,7 @@ start:
 
         call    setup_vector
         call    start_player
+        call    enable_graphics
 
 @@1:
         hlt
@@ -60,11 +63,23 @@ start:
 exit:
         call    stop_player
         call    restore_vector
+        call    disable_graphics
         mov     ah, 4ch
         int     21h
 
+ticks dw 0
+
 on_tick:
         call    update_player
+
+        inc     ticks
+        cmp     ticks, 20
+        jne     @@finish
+
+        call    draw_scene
+        mov     ticks, 0
+
+@@finish:
         ret
 
 key_up:
