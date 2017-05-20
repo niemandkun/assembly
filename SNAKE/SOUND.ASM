@@ -17,7 +17,7 @@ sound_off endp
 
 
 setup_sys_timer proc near
-        mov     ax, 4000h
+        mov     ax, 4800h
         call    set_sys_timer_freq
         ret
 setup_sys_timer endp
