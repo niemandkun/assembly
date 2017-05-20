@@ -3,18 +3,14 @@
 
 .stack
 
+include string.asm
+include args.asm
 include ringbuf.asm
 include int9.asm
 include print.asm
 
 text segment
         assume  cs:text, ds:text, es:text
-
-start:
-        mov     ax, cs
-        mov     ds, ax
-        mov     es, ax
-        jmp     begin
 
 handler:        ; смещения обработчиков для каждой команды
         dw      0,      offset exit
@@ -24,8 +20,15 @@ handler:        ; смещения обработчиков для каждой 
         dw      4,      offset keyDown
         dw      0FFFFh
 
-begin proc near
+start:
+        call    parseArgs
+
+        mov     ax, cs
+        mov     ds, ax
+        mov     es, ax
+
         call    setupVector
+
 @@1:
         hlt
         call    ringBufferRead
@@ -46,8 +49,6 @@ begin proc near
         call    ax
         jmp     @@1
 
-        ret
-begin endp
 
 exit proc near
         call    restoreVector

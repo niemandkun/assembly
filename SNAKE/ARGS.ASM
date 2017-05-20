@@ -1,3 +1,6 @@
+text segment
+        assume  cs:text, ds:text, es:nothing
+
 Token struc
     @ptr dw ?
     @length dw ?
@@ -9,141 +12,48 @@ argcPtr = 80h
 argvPtr = argcPtr + 1
 
 
-loadPageModeArgs proc c near uses bx cx dx si di
+lengthFlag db '/LENGTH', 00h
+lengthFlagShort db '/L', 00h
 
-        mov     cx, [tokensCount]
+collisionFlag db '/COLLISION', 00h
+collisionFlagShort db '/C', 00h
 
-        cmp     cx, 2
-        jne     printUsageAndExit
+itemsFlag db '/ITEMS', 00h
+itemsFlagShort db '/I', 00h
 
-        lea     di, [currentVideoParams]
-        lea     si, [tokens]
-
-        xor     ax, ax
-
-@@checkLoop:
-        mov     bx, [si].@length
-
-        cmp     bx, 1
-        jne     printUsageAndExit
-
-        mov     bx, [si].@ptr
-        mov     al, [bx]
-        sub     al, 30h
-
-        stosb
-
-        add     si, sizeOfToken
-        dec     cx
-        jnz     @@checkLoop
-
-        ret
-
-loadPageModeArgs endp
+deathFlag db 'DEATH', 00h
+cutFlag db 'CUT', 00h
+nothingFlag db 'NOTHING', 00h
 
 
-checkPageModeCorrect proc c near uses bx
+parseArgs proc c near uses bx cx dx
 
-        xor     ax, ax
+        mov     ax, ds
+        mov     es, ax
 
-        mov     al, [currentVideoMode]
-        mov     ah, [currentVideoPage]
+        call    splitArgsCom
 
-        cmp     al, 7
-        je      @@checkMode
+        mov     ax, cs
+        mov     es, ax
 
-        test    al, al
-        jl      printUsageAndExit
-
-        cmp     al, 3
-        jg      printUsageAndExit
-
-@@checkMode:
-        test    ah, ah
-        jl      printUsageAndExit
-
-        xor     bx, bx
-        mov     bl, al
-        add     bx, offset numPages
-        cmp     ah, cs:[bx]
-        jge     printUsageAndExit
-
-        ret
-
-checkPageModeCorrect endp
-
-
-numPages db 8, 8, 4, 4, 7 dup(1)
-
-
-printUsageAndExit proc near
-
-        lea     dx, [usage]
-        mov     ah, 09h
-        int     21h
-        int     20h
-
-printUsageAndExit endp
-
-
-usage db 0Ah
-      db "Usage: 2.COM MODE PAGE", 0Ah, 0Ah
-      db "Print fullscreen ASCII-table and exit by pressing any key.", 0Ah, 0Ah
-      db "MODE: 0..3,7 - video mode to use.", 0Ah
-      db "PAGE: 0..7 - video page to print table.", 0Ah, 0Ah
-      db "    Mode   Valid Pages", 0Ah
-      db "      0       0 - 7   ", 0Ah
-      db "      1       0 - 7   ", 0Ah
-      db "      2       0 - 3   ", 0Ah
-      db "      3       0 - 3   ", 0Ah
-      db "      7         0     ", 0Ah
-      db 24h
-
-
-parseArgsCom proc c near uses dx
-
-        xor     dx, dx
-        mov     dl, cs:[argcPtr]
-        push    dx
-
-        mov     dx, argvPtr
-        push    dx
-
-        call    parseArgs
-        add     sp, 2 + 2
-
-        ret
-
-parseArgsCom endp
-
-
-parseArgs proc c near uses ax dx
-        arg @@argvPtr:word, @@argc:word
-        ; returns: count of tokens in ax, pointer to tokens in bx
-
-        mov     dx, [@@argc]
-
-        test    dx, dx
+        mov     cx, cs:[tokensCount]
+        test    cx, cx
         jz      @@finish
 
-        push    dx
+        lea     bx, [tokens]
 
-        mov     dx, [@@argvPtr]
-        push    dx
+@@checkLoop:
+        push    bx
+        call    processParameter
+        add     sp, 2
 
-        call    strToUpper
-        call    splitTokens
-        add     sp, 2 + 2
+        sub     cx, ax
+        jle     @@finish
 
-        mov     [tokensCount], ax
-        mov     cx, sizeOfToken     ; cx - size of element
-        mul     cx
-
-        lea     dx, [tokens]
-        add     ax, dx
-        mov     [tokensExclusiveEndPtr], ax
-
-        call    unescapeAndTerminate
+        mov     dx, sizeOfToken
+        mul     dx
+        add     bx, ax
+        jmp     @@checkLoop
 
 @@finish:
         ret
@@ -151,11 +61,233 @@ parseArgs proc c near uses ax dx
 parseArgs endp
 
 
+flagCmp proc
+        ;   si -- parameter (in data segment)
+        ;   di -- flag (in code segment)
+        ;   dx -- short flag (in code segment)
+
+        push    si
+
+        push    dx
+        call    strCompare
+        add     sp, 2
+        mov     dx, ax
+
+        push    di
+        call    strCompare
+        add     sp, 4
+
+        and     ax, dx
+
+        ret
+
+flagCmp endp
+
+
+singleFlagCmp macro flag
+        push    si
+        lea     di, [flag]
+        push    di
+        call    strCompare
+        add     sp, 2+2
+        test    ax, ax
+endm
+
+
+storeCollisionType proc
+        ; bx -- pointer to Token
+        ; ret: ax = 1 if error, 0 otherwise
+
+        xor     ax, ax
+        mov     si, cs:[bx].@ptr
+        test    si, si
+        jz      @@error
+
+@@death:
+        singleFlagCmp deathFlag
+        jne     @@cut
+        ; TODO: handle parameter
+        ret
+
+@@cut:
+        singleFlagCmp cutFlag
+        jne     @@nothing
+        ; TODO: handle parameter
+        ret
+
+@@nothing:
+        singleFlagCmp nothingFlag
+        jne     @@error
+        ; TODO: handle parameter
+        ret
+
+@@error:
+        mov     ax, 1
+        ret
+
+storeCollisionType endp
+
+
+processParameter proc c near uses bx cx si di
+        arg @@tokenPtr:word
+
+        mov     bx, ss:[@@tokenPtr]
+
+        mov     si, cs:[bx].@ptr
+        mov     cx, cs:[bx].@length
+
+@@collision:
+        lea     di, [collisionFlag]
+        lea     dx, [collisionFlagShort]
+        call    flagCmp
+        test    ax, ax
+        jnz     @@length
+
+        add     bx, sizeOfToken
+        call    storeCollisionType
+        test    ax, ax
+        jnz     @@invalid
+
+        mov     ax, 2
+        jmp     @@finish
+
+@@length:
+        lea     di, [lengthFlag]
+        lea     dx, [lengthFlagShort]
+        call    flagCmp
+        test    ax, ax
+        jnz     @@items
+
+        add     bx, sizeOfToken
+        mov     bx, cs:[bx].@ptr
+        push    bx
+        call    parseInt
+        add     sp, 2
+
+        ; TODO: handle parameter
+
+        mov     ax, 2
+        jmp     @@finish
+
+@@items:
+        lea     di, [itemsFlag]
+        lea     dx, [itemsFlagShort]
+        call    flagCmp
+        test    ax, ax
+        jnz     @@invalid
+
+        add     bx, sizeOfToken
+        mov     bx, cs:[bx].@ptr
+        push    bx
+        call    parseInt
+        add     sp, 2
+
+        ; TODO: handle parameter
+
+        mov     ax, 2
+        jmp     @@finish
+
+@@invalid:
+        jmp     printUsageAndExit
+
+@@finish:
+        ret
+
+processParameter endp
+
+
+printUsageAndExit proc near
+        mov     ax, cs
+        mov     ds, ax
+        lea     dx, [help]
+        mov     ah, 09h
+        int     21h
+        mov     ah, 4ch
+        mov     al, 1
+        int     21h
+printUsageAndExit endp
+
+
+help db                                                                                0Ah
+     db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/LL LASTLINE] [/?]",        0Ah
+     db                                                                                0Ah
+     db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
+     db                                                                                0Ah
+     db "Parameters:",                                                                 0Ah
+     db "    /N, /NOBLINK   - Disable blinking",                                       0Ah
+     db "    /M, /MODE      - Video mode to use (default 3)",                          0Ah
+     db "    /P, /PAGE      - Video page to use (default 0)",                          0Ah
+     db "    /C, /CAPTION   - Set color for caption",                                  0Ah
+     db "    /LL, /LASTLINE - Set output mode for last line in mode 7h",               0Ah
+     db "                     possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",  0Ah
+     db                                                                                0Ah
+     db "    /?, /HELP      - Show this help message and exit",                        0Ah
+     db                                                                                0Ah
+     db "    Mode   Valid Pages",                                                      0Ah
+     db "      0       0 - 7   ",                                                      0Ah
+     db "      1       0 - 7   ",                                                      0Ah
+     db "      2       0 - 3   ",                                                      0Ah
+     db "      3       0 - 3   ",                                                      0Ah
+     db "      7         0     ",                                                      0Ah
+     db                                                                                24h
+
+
+splitArgsCom proc c near uses dx
+
+        xor     dx, dx
+        mov     dl, ds:[argcPtr]
+        push    dx
+
+        mov     dx, argvPtr
+        push    dx
+
+        call    splitArgs
+        add     sp, 2 + 2
+
+        ret
+
+splitArgsCom endp
+
+
+splitArgs proc c near uses ax dx
+        arg @@argvPtr:word, @@argc:word
+        ; returns: count of tokens in ax, pointer to tokens in bx
+
+        mov     dx, ss:[@@argc]
+
+        test    dx, dx
+        jz      @@finish
+
+        push    dx
+
+        mov     dx, ss:[@@argvPtr]
+        push    dx
+
+        call    strToUpper
+        call    splitTokens
+        add     sp, 2 + 2
+
+        mov     cs:[tokensCount], ax
+        mov     cx, sizeOfToken     ; cx - size of element
+        mul     cx
+
+        lea     dx, cs:[tokens]
+        add     ax, dx
+        mov     cs:[tokensExclusiveEndPtr], ax
+
+        call    unescapeAndTerminate
+
+@@finish:
+        ret
+
+splitArgs endp
+
+
 unescapeAndTerminate proc c near uses ax bx cx dx
 
         mov     cx, sizeOfToken             ; cx - size of element
-        lea     ax, [tokens]                ; ax - begin ptr
-        mov     dx, [tokensExclusiveEndPtr] ; dx - end ptr
+        lea     ax, cs:[tokens]                ; ax - begin ptr
+        mov     dx, cs:[tokensExclusiveEndPtr] ; dx - end ptr
 
 @@foreachLoop:
         push    ax
@@ -172,14 +304,17 @@ unescapeAndTerminate proc c near uses ax bx cx dx
 unescapeAndTerminate endp
 
 
-splitTokens proc c near uses bx cx dx si di
+splitTokens proc c near uses bx cx dx si di es
         arg @@strPtr:word, @@strLength:word
         ; fills array of tokens with data
         ; returns count of tokens
 
-        mov     si, [@@strPtr]
-        mov     cx, [@@strLength]
-        lea     di, [tokens]
+        mov     ax, cs
+        mov     es, ax
+
+        mov     si, ss:[@@strPtr]
+        mov     cx, ss:[@@strLength]
+        lea     di, cs:[tokens]
         xor     dx, dx
 
 @@readTokenLoop:
@@ -245,8 +380,8 @@ readSpaces proc c near uses cx si
         arg @@strPtr:word, @@strLength:word
         ; returns count of spaces
 
-        mov     si, [@@strPtr]
-        mov     cx, [@@strLength]
+        mov     si, ss:[@@strPtr]
+        mov     cx, ss:[@@strLength]
 
 @@readLoop:
         lodsb
@@ -260,7 +395,7 @@ readSpaces proc c near uses cx si
         je      @@readLoop
 
 @@finish:
-        mov     ax, [@@strPtr]      ; 0 1 2 3 4 5 6 7 8 9
+        mov     ax, ss:[@@strPtr]   ; 0 1 2 3 4 5 6 7 8 9
         sub     si, ax              ; # # _ # # # # _ # #
         xchg    si, ax              ;       ^         ^
         dec     ax                  ;       ax        si
@@ -273,12 +408,12 @@ readToken proc c near uses bx cx dx si
         arg @@strPtr:word, @@strLength:word, @@terminateCharacter:word
         ; returns length of read
 
-        mov     dx, [@@terminateCharacter]
+        mov     dx, ss:[@@terminateCharacter]
         mov     bh, 5Ch     ; escape character ('\\')
         xor     bl, bl      ; escaped flag
 
-        mov     si, [@@strPtr]
-        mov     cx, [@@strLength]
+        mov     si, ss:[@@strPtr]
+        mov     cx, ss:[@@strLength]
 
 @@readLoop:
         lodsb
@@ -309,7 +444,7 @@ readToken proc c near uses bx cx dx si
         jg      @@readLoop
 
 @@finish:
-        mov     ax, [@@strPtr]
+        mov     ax, ss:[@@strPtr]
         sub     si, ax
         xchg    si, ax
         ret
@@ -320,18 +455,18 @@ readToken endp
 unescapeToken proc c near uses bx dx
         arg @@tokenPtr:word
 
-        mov     bx, [@@tokenPtr]
+        mov     bx, ss:[@@tokenPtr]
 
-        mov     dx, [bx].@length
+        mov     dx, cs:[bx].@length
         push    dx
 
-        mov     dx, [bx].@ptr
+        mov     dx, cs:[bx].@ptr
         push    dx
 
         call    strUnescape
 
         add     sp, 2 * 2
-        mov     word ptr [bx].@length, ax
+        mov     word ptr cs:[bx].@length, ax
         ret
 
 unescapeToken endp
@@ -340,13 +475,13 @@ unescapeToken endp
 terminateToken proc c near uses ax bx cx
         arg @@tokenPtr:word
 
-        mov     bx, [@@tokenPtr]
+        mov     bx, ss:[@@tokenPtr]
 
-        mov     ax, [bx].@length
-        mov     bx, [bx].@ptr
+        mov     ax, cs:[bx].@length
+        mov     bx, cs:[bx].@ptr
         add     bx, ax
 
-        mov     byte ptr [bx], 00h
+        mov     byte ptr ds:[bx], 00h
 
         ret
 
@@ -354,5 +489,7 @@ terminateToken endp
 
 
 tokensCount dw ?
-tokens Token 64 dup(<>)
+tokens Token 64 dup(?)
 tokensExclusiveEndPtr dw ?
+
+text ends
