@@ -1,3 +1,6 @@
+text segment
+        assume  cs:text, ds:text, es:text
+
 bufferLength = 20
 
 buffer  db      bufferLength dup (0)
@@ -45,3 +48,5 @@ ringBufferRead proc near
         clc
         ret
 ringBufferRead endp
+
+text ends
