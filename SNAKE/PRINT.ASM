@@ -1,6 +1,6 @@
 print macro
         push    ax
-        call    printWord
+        call    print_word
         add     sp, 2
 endm
 
@@ -8,41 +8,41 @@ text segment
         assume  cs:text, ds:text, es:text
 
 colon = 3Ah
-newLine = 0Ah
+new_line = 0Ah
 
 
-printSegmentOffset proc c near uses dx
-        arg @@segmentAddress:word, @@offset:word
+print_segment_offset proc c near uses dx
+        arg @@segment_address:word, @@offset:word
 
-        mov     dx, [@@segmentAddress]
+        mov     dx, [@@segment_address]
         push    dx
-        call    printWord
+        call    print_word
         pop     dx
 
         mov     dx, colon
         push    dx
-        call    putChar
+        call    put_char
         pop     dx
 
         mov     dx, [@@offset]
         push    dx
-        call    printWord
+        call    print_word
         pop     dx
 
-        mov     dx, newLine
+        mov     dx, new_line
         push    dx
-        call    putChar
+        call    put_char
         pop     dx
 
         ret
 
-printSegmentOffset endp
+print_segment_offset endp
 
 
-putChar proc c near uses ax bx cx dx
-        arg @@charToPrint:word
+put_char proc c near uses ax bx cx dx
+        arg @@char_to_print:word
 
-        mov     ax, [@@charToPrint]
+        mov     ax, [@@char_to_print]
         mov     ah, 0Ah
         mov     cx, 1
         xor     bx, bx
@@ -60,43 +60,43 @@ putChar proc c near uses ax bx cx dx
 
         ret
 
-putChar endp
+put_char endp
 
 
-printNewLine proc c near uses ax dx
+print_new_line proc c near uses ax dx
 
-        lea     dx, [@@newLine]
+        lea     dx, [@@new_line]
         mov     ah, 09h
         int     21h
 
         ret
 
-@@newLine db 0Dh, 0Ah, 24h
+@@new_line db 0Dh, 0Ah, 24h
 
-printNewLine endp
+print_new_line endp
 
 
-printByte proc c near uses ax dx
-        arg @@byteToPrint:word
+print_byte proc c near uses ax dx
+        arg @@byte_to_print:word
 
         mov     dx, 02h
         push    dx
         mov     dx, 10h
         push    dx
-        mov     dx, [@@byteToPrint]
+        mov     dx, [@@byte_to_print]
         push    dx
-        call    printNumber
+        call    print_number
         add     sp, 3 * 2
         mov     ah, 02h
         mov     dx, "h"
         int     21h
         ret
 
-printByte endp
+print_byte endp
 
 
-printWord proc c near uses dx
-        arg @@wordToPrint:word
+print_word proc c near uses dx
+        arg @@word_to_print:word
 
         mov     dx, 04h     ; add up to 4 leading zeros to adjust length
         push    dx
@@ -104,60 +104,60 @@ printWord proc c near uses dx
         mov     dx, 10h     ; radix
         push    dx
 
-        mov     dx, [@@wordToPrint]
+        mov     dx, [@@word_to_print]
         push    dx
 
-        call    printNumber
+        call    print_number
 
         add     sp, 3 * 2
 
-        call    printNewLine
+        call    print_new_line
 
         ret
 
-printWord endp
+print_word endp
 
 
-printNumber proc c near uses ax bx cx dx
-        arg @@numberToPrint:word, @@radix:word, @@totalLength:word
+print_number proc c near uses ax bx cx dx
+        arg @@number_to_print:word, @@radix:word, @@total_length:word
 
-        mov     ax, [@@numberToPrint]
+        mov     ax, [@@number_to_print]
         mov     bx, [@@radix]
         xor     cx, cx              ; counter for characters to print
 
-@@divisionLoop:
+@@division_loop:
         xor     dx, dx
         div     bx
         push    dx                  ; push remainder to stack
         inc     cx
         test    ax, ax
-        jnz     @@divisionLoop
+        jnz     @@division_loop
 
         mov     ah, 02h
         mov     dx, 30h             ; print leading zeros if need
-        mov     bx, [@@totalLength]
+        mov     bx, [@@total_length]
 
-@@leadingZerosLoop:
+@@leading_zeros_loop:
         cmp     bx, cx
-        jle     @@printLoop
+        jle     @@print_loop
         int     21h
         dec     bx
-        jmp     @@leadingZerosLoop
+        jmp     @@leading_zeros_loop
 
-@@printLoop:
+@@print_loop:
         pop     dx
         cmp     dl, 0Ah
-        jb      @@isDecimal
+        jb      @@is_decimal
         add     dl, 07h             ; if hex number
 
-@@isDecimal:
+@@is_decimal:
         add     dl, 30h
         int     21h
         dec     cx
-        jnz     @@printLoop
+        jnz     @@print_loop
 
         ret
 
-printNumber endp
+print_number endp
 
 text ends

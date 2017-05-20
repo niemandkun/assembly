@@ -5,7 +5,7 @@ old9:
 old9segment dw ?
 old9offset dw ?
 
-keyCommands:
+key_commands:
         ;
         ; convert scancode into command code
         ;
@@ -21,12 +21,12 @@ int9 proc near
         push    ax
 
         in      al, 60h
-        call    getCommand
+        call    get_command
         cmp     al, 0FFh
-        je      @@endOfInterrupt
-        call    ringBufferWrite
+        je      @@end_of_interrupt
+        call    ring_buffer_write
 
-@@endOfInterrupt:
+@@end_of_interrupt:
 
         in      al, 61h
         or      al, 80h
@@ -42,7 +42,7 @@ int9 proc near
 int9 endp
 
 
-getCommand proc near
+get_command proc near
         push    si
         push    bx
         push    ds
@@ -52,9 +52,9 @@ getCommand proc near
         mov     ax, cs
         mov     ds, ax
 
-        lea     si, [keyCommands]
+        lea     si, [key_commands]
 
-@@searchCycle:
+@@search_cycle:
         lodsb
         cmp     al, 0FFh
         je      @@finish
@@ -63,7 +63,7 @@ getCommand proc near
         je      @@finish
 
         inc     si
-        jmp     @@searchCycle
+        jmp     @@search_cycle
 
 @@finish:
         lodsb
@@ -72,10 +72,10 @@ getCommand proc near
         pop     si
 
         ret
-getCommand endp
+get_command endp
 
 
-setupVector proc near
+setup_vector proc near
         push    di
         push    dx
 
@@ -97,10 +97,10 @@ setupVector proc near
         pop     dx
         pop     di
         ret
-setupVector endp
+setup_vector endp
 
 
-restoreVector proc near
+restore_vector proc near
         mov     dx, word ptr cs:[old9offset]
         mov     bx, word ptr cs:[old9segment]
         mov     ds, bx
@@ -109,6 +109,6 @@ restoreVector proc near
         push    cs
         pop     ds
         ret
-restoreVector endp
+restore_vector endp
 
 text ends

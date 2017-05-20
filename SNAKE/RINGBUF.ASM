@@ -1,52 +1,52 @@
 text segment
         assume  cs:text, ds:text, es:text
 
-bufferLength = 20
+buffer_length = 20
 
-buffer  db      bufferLength dup (0)
+buffer  db      buffer_length dup (0)
 
-bufferEnd = $
+buffer_end = $
 
 head    dw      offset buffer
 tail    dw      offset buffer
 
-ringBufferWrite proc near
+ring_buffer_write proc near
         push    bx
         mov     bx, cs:head
         mov     byte ptr cs:[bx], al
         mov     ax, bx
         inc     word ptr cs:head
-        cmp     word ptr cs:head, offset bufferEnd
-        jne     @@noHeadResumption
+        cmp     word ptr cs:head, offset buffer_end
+        jne     @@no_head_resumption
         mov     cs:head, offset buffer
-@@noHeadResumption:
+@@no_head_resumption:
         mov     bx, cs:head
         cmp     bx, cs:tail
-        jne     @@bufferIsNotFull
+        jne     @@buffer_is_not_full
         mov     cs:head, ax
-@@bufferIsNotFull:
+@@buffer_is_not_full:
         pop     bx
         ret
-ringBufferWrite endp
+ring_buffer_write endp
 
-ringBufferRead proc near
+ring_buffer_read proc near
         push    bx
         mov     bx, cs:tail
         cmp     bx, cs:head
-        jne     @@bufferIsNotEmpty
+        jne     @@buffer_is_not_empty
         pop     bx
         stc
         ret
-@@bufferIsNotEmpty:
+@@buffer_is_not_empty:
         mov     al, byte ptr cs:[bx]
         inc     word ptr cs:tail
-        cmp     word ptr cs:tail, offset bufferEnd
-        jne     @@noTailResumption
+        cmp     word ptr cs:tail, offset buffer_end
+        jne     @@no_tail_resumption
         mov     word ptr cs:tail, offset buffer
-@@noTailResumption:
+@@no_tail_resumption:
         pop     bx
         clc
         ret
-ringBufferRead endp
+ring_buffer_read endp
 
 text ends

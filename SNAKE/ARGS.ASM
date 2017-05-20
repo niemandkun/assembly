@@ -6,62 +6,62 @@ Token struc
     @length dw ?
 Token ends
 
-sizeOfToken = 4
+size_of_token = 4
 
-argcPtr = 80h
-argvPtr = argcPtr + 1
-
-
-lengthFlag db '/LENGTH', 00h
-lengthFlagShort db '/L', 00h
-
-collisionFlag db '/COLLISION', 00h
-collisionFlagShort db '/C', 00h
-
-itemsFlag db '/ITEMS', 00h
-itemsFlagShort db '/I', 00h
-
-deathFlag db 'DEATH', 00h
-cutFlag db 'CUT', 00h
-nothingFlag db 'NOTHING', 00h
+argc_ptr = 80h
+argv_ptr = argc_ptr + 1
 
 
-parseArgs proc c near uses bx cx dx
+length_flag db '/LENGTH', 00h
+length_flag_short db '/L', 00h
+
+collision_flag db '/COLLISION', 00h
+collision_flag_short db '/C', 00h
+
+items_flag db '/ITEMS', 00h
+items_flag_short db '/I', 00h
+
+death_flag db 'DEATH', 00h
+cut_flag db 'CUT', 00h
+nothing_flag db 'NOTHING', 00h
+
+
+parse_args proc c near uses bx cx dx
 
         mov     ax, ds
         mov     es, ax
 
-        call    splitArgsCom
+        call    split_args_com
 
         mov     ax, cs
         mov     es, ax
 
-        mov     cx, cs:[tokensCount]
+        mov     cx, cs:[tokens_count]
         test    cx, cx
         jz      @@finish
 
         lea     bx, [tokens]
 
-@@checkLoop:
+@@check_loop:
         push    bx
-        call    processParameter
+        call    process_parameter
         add     sp, 2
 
         sub     cx, ax
         jle     @@finish
 
-        mov     dx, sizeOfToken
+        mov     dx, size_of_token
         mul     dx
         add     bx, ax
-        jmp     @@checkLoop
+        jmp     @@check_loop
 
 @@finish:
         ret
 
-parseArgs endp
+parse_args endp
 
 
-flagCmp proc
+flag_cmp proc
         ;   si -- parameter (in data segment)
         ;   di -- flag (in code segment)
         ;   dx -- short flag (in code segment)
@@ -69,32 +69,32 @@ flagCmp proc
         push    si
 
         push    dx
-        call    strCompare
+        call    str_compare
         add     sp, 2
         mov     dx, ax
 
         push    di
-        call    strCompare
+        call    str_compare
         add     sp, 4
 
         and     ax, dx
 
         ret
 
-flagCmp endp
+flag_cmp endp
 
 
-singleFlagCmp macro flag
+single_flag_cmp macro flag
         push    si
         lea     di, [flag]
         push    di
-        call    strCompare
+        call    str_compare
         add     sp, 2+2
         test    ax, ax
 endm
 
 
-storeCollisionType proc
+store_collision_type proc
         ; bx -- pointer to Token
         ; ret: ax = 1 if error, 0 otherwise
 
@@ -104,19 +104,19 @@ storeCollisionType proc
         jz      @@error
 
 @@death:
-        singleFlagCmp deathFlag
+        single_flag_cmp death_flag
         jne     @@cut
         ; TODO: handle parameter
         ret
 
 @@cut:
-        singleFlagCmp cutFlag
+        single_flag_cmp cut_flag
         jne     @@nothing
         ; TODO: handle parameter
         ret
 
 @@nothing:
-        singleFlagCmp nothingFlag
+        single_flag_cmp nothing_flag
         jne     @@error
         ; TODO: handle parameter
         ret
@@ -125,26 +125,26 @@ storeCollisionType proc
         mov     ax, 1
         ret
 
-storeCollisionType endp
+store_collision_type endp
 
 
-processParameter proc c near uses bx cx si di
-        arg @@tokenPtr:word
+process_parameter proc c near uses bx cx si di
+        arg @@token_ptr:word
 
-        mov     bx, ss:[@@tokenPtr]
+        mov     bx, ss:[@@token_ptr]
 
         mov     si, cs:[bx].@ptr
         mov     cx, cs:[bx].@length
 
 @@collision:
-        lea     di, [collisionFlag]
-        lea     dx, [collisionFlagShort]
-        call    flagCmp
+        lea     di, [collision_flag]
+        lea     dx, [collision_flag_short]
+        call    flag_cmp
         test    ax, ax
         jnz     @@length
 
-        add     bx, sizeOfToken
-        call    storeCollisionType
+        add     bx, size_of_token
+        call    store_collision_type
         test    ax, ax
         jnz     @@invalid
 
@@ -152,16 +152,16 @@ processParameter proc c near uses bx cx si di
         jmp     @@finish
 
 @@length:
-        lea     di, [lengthFlag]
-        lea     dx, [lengthFlagShort]
-        call    flagCmp
+        lea     di, [length_flag]
+        lea     dx, [length_flag_short]
+        call    flag_cmp
         test    ax, ax
         jnz     @@items
 
-        add     bx, sizeOfToken
+        add     bx, size_of_token
         mov     bx, cs:[bx].@ptr
         push    bx
-        call    parseInt
+        call    parse_int
         add     sp, 2
 
         ; TODO: handle parameter
@@ -170,16 +170,16 @@ processParameter proc c near uses bx cx si di
         jmp     @@finish
 
 @@items:
-        lea     di, [itemsFlag]
-        lea     dx, [itemsFlagShort]
-        call    flagCmp
+        lea     di, [items_flag]
+        lea     dx, [items_flag_short]
+        call    flag_cmp
         test    ax, ax
         jnz     @@invalid
 
-        add     bx, sizeOfToken
+        add     bx, size_of_token
         mov     bx, cs:[bx].@ptr
         push    bx
-        call    parseInt
+        call    parse_int
         add     sp, 2
 
         ; TODO: handle parameter
@@ -188,15 +188,15 @@ processParameter proc c near uses bx cx si di
         jmp     @@finish
 
 @@invalid:
-        jmp     printUsageAndExit
+        jmp     print_usage_and_exit
 
 @@finish:
         ret
 
-processParameter endp
+process_parameter endp
 
 
-printUsageAndExit proc near
+print_usage_and_exit proc near
         mov     ax, cs
         mov     ds, ax
         lea     dx, [help]
@@ -205,7 +205,7 @@ printUsageAndExit proc near
         mov     ah, 4ch
         mov     al, 1
         int     21h
-printUsageAndExit endp
+print_usage_and_exit endp
 
 
 help db                                                                                0Ah
@@ -232,25 +232,25 @@ help db                                                                         
      db                                                                                24h
 
 
-splitArgsCom proc c near uses dx
+split_args_com proc c near uses dx
 
         xor     dx, dx
-        mov     dl, ds:[argcPtr]
+        mov     dl, ds:[argc_ptr]
         push    dx
 
-        mov     dx, argvPtr
+        mov     dx, argv_ptr
         push    dx
 
-        call    splitArgs
+        call    split_args
         add     sp, 2 + 2
 
         ret
 
-splitArgsCom endp
+split_args_com endp
 
 
-splitArgs proc c near uses ax dx
-        arg @@argvPtr:word, @@argc:word
+split_args proc c near uses ax dx
+        arg @@argv_ptr:word, @@argc:word
         ; returns: count of tokens in ax, pointer to tokens in bx
 
         mov     dx, ss:[@@argc]
@@ -260,67 +260,67 @@ splitArgs proc c near uses ax dx
 
         push    dx
 
-        mov     dx, ss:[@@argvPtr]
+        mov     dx, ss:[@@argv_ptr]
         push    dx
 
-        call    strToUpper
-        call    splitTokens
+        call    str_to_upper
+        call    split_tokens
         add     sp, 2 + 2
 
-        mov     cs:[tokensCount], ax
-        mov     cx, sizeOfToken     ; cx - size of element
+        mov     cs:[tokens_count], ax
+        mov     cx, size_of_token     ; cx - size of element
         mul     cx
 
         lea     dx, cs:[tokens]
         add     ax, dx
-        mov     cs:[tokensExclusiveEndPtr], ax
+        mov     cs:[tokens_exclusive_end_ptr], ax
 
-        call    unescapeAndTerminate
+        call    unescape_and_terminate
 
 @@finish:
         ret
 
-splitArgs endp
+split_args endp
 
 
-unescapeAndTerminate proc c near uses ax bx cx dx
+unescape_and_terminate proc c near uses ax bx cx dx
 
-        mov     cx, sizeOfToken             ; cx - size of element
+        mov     cx, size_of_token             ; cx - size of element
         lea     ax, cs:[tokens]                ; ax - begin ptr
-        mov     dx, cs:[tokensExclusiveEndPtr] ; dx - end ptr
+        mov     dx, cs:[tokens_exclusive_end_ptr] ; dx - end ptr
 
-@@foreachLoop:
+@@foreach_loop:
         push    ax
-        call    unescapeToken
-        call    terminateToken
+        call    unescape_token
+        call    terminate_token
         pop     ax
 
         add     ax, cx
         cmp     ax, dx
-        jb      @@foreachLoop
+        jb      @@foreach_loop
 
         ret
 
-unescapeAndTerminate endp
+unescape_and_terminate endp
 
 
-splitTokens proc c near uses bx cx dx si di es
-        arg @@strPtr:word, @@strLength:word
+split_tokens proc c near uses bx cx dx si di es
+        arg @@str_ptr:word, @@str_length:word
         ; fills array of tokens with data
         ; returns count of tokens
 
         mov     ax, cs
         mov     es, ax
 
-        mov     si, ss:[@@strPtr]
-        mov     cx, ss:[@@strLength]
+        mov     si, ss:[@@str_ptr]
+        mov     cx, ss:[@@str_length]
         lea     di, cs:[tokens]
         xor     dx, dx
 
-@@readTokenLoop:
+@@read_token_loop:
         push    cx
         push    si
-        call    readSpaces
+        call    read_spaces
         add     sp, 2 * 2
 
         sub     cx, ax
@@ -331,11 +331,11 @@ splitTokens proc c near uses bx cx dx si di es
 
         mov     al, [si]        ; peek first character and choose what to do
 
-@@singleQuote:
+@@single_quote:
         cmp     al, 27h
         je      @@quote
 
-@@doubleQuote:
+@@double_quote:
         cmp     al, 22h
         jne     @@space
 
@@ -343,19 +343,19 @@ splitTokens proc c near uses bx cx dx si di es
         inc     si
         dec     cx
         push    ax
-        jmp     @@readToken
+        jmp     @@read_token
 
 @@space:
         mov     al, 20h
         push    ax
 
-@@readToken:
+@@read_token:
         mov     ax, si
         stosw                   ; remember start of the token
 
         push    cx
         push    si
-        call    readToken
+        call    read_token
         add     sp, 2 * 3
 
         stosw                   ; remember length of the token
@@ -367,95 +367,95 @@ splitTokens proc c near uses bx cx dx si di es
         inc     dx
 
         test    cx, cx
-        jg      @@readTokenLoop
+        jg      @@read_token_loop
 
 @@finish:
         mov     ax, dx
         ret
 
-splitTokens endp
+split_tokens endp
 
 
-readSpaces proc c near uses cx si
-        arg @@strPtr:word, @@strLength:word
+read_spaces proc c near uses cx si
+        arg @@str_ptr:word, @@str_length:word
         ; returns count of spaces
 
-        mov     si, ss:[@@strPtr]
-        mov     cx, ss:[@@strLength]
+        mov     si, ss:[@@str_ptr]
+        mov     cx, ss:[@@str_length]
 
-@@readLoop:
+@@read_loop:
         lodsb
         dec     cx
         jle     @@finish
 
         cmp     al, 20h     ; space
-        je      @@readLoop
+        je      @@read_loop
 
         cmp     al, 09h     ; tab
-        je      @@readLoop
+        je      @@read_loop
 
 @@finish:
-        mov     ax, ss:[@@strPtr]   ; 0 1 2 3 4 5 6 7 8 9
+        mov     ax, ss:[@@str_ptr]   ; 0 1 2 3 4 5 6 7 8 9
         sub     si, ax              ; # # _ # # # # _ # #
         xchg    si, ax              ;       ^         ^
         dec     ax                  ;       ax        si
         ret                         ; thus, len = si - ax - 1
 
-readSpaces endp
+read_spaces endp
 
 
-readToken proc c near uses bx cx dx si
-        arg @@strPtr:word, @@strLength:word, @@terminateCharacter:word
+read_token proc c near uses bx cx dx si
+        arg @@str_ptr:word, @@str_length:word, @@terminate_character:word
         ; returns length of read
 
-        mov     dx, ss:[@@terminateCharacter]
+        mov     dx, ss:[@@terminate_character]
         mov     bh, 5Ch     ; escape character ('\\')
         xor     bl, bl      ; escaped flag
 
-        mov     si, ss:[@@strPtr]
-        mov     cx, ss:[@@strLength]
+        mov     si, ss:[@@str_ptr]
+        mov     cx, ss:[@@str_length]
 
-@@readLoop:
+@@read_loop:
         lodsb
         cmp     al, dl              ; is character terminating?
-        jne     @@nonTerminating
+        jne     @@non_terminating
 
         test    bl, bl              ; is character not escaped?
-        jnz     @@nonTerminating
+        jnz     @@non_terminating
 
         dec     si
         jmp     @@finish            ; if so, end reading
 
-@@nonTerminating:
+@@non_terminating:
         cmp     al, bh              ; is character escaping?
-        jne     @@nonEscaping
+        jne     @@non_escaping
 
         test    bl, bl              ; is character not escaped?
-        jnz     @@nonEscaping
+        jnz     @@non_escaping
 
         mov     bl, 1               ; if so, set escaped = true
-        jmp     @@loopEnd
+        jmp     @@loop_end
 
-@@nonEscaping:
+@@non_escaping:
         xor     bl, bl
 
-@@loopEnd:
+@@loop_end:
         dec     cx
-        jg      @@readLoop
+        jg      @@read_loop
 
 @@finish:
-        mov     ax, ss:[@@strPtr]
+        mov     ax, ss:[@@str_ptr]
         sub     si, ax
         xchg    si, ax
         ret
 
-readToken endp
+read_token endp
 
 
-unescapeToken proc c near uses bx dx
-        arg @@tokenPtr:word
+unescape_token proc c near uses bx dx
+        arg @@token_ptr:word
 
-        mov     bx, ss:[@@tokenPtr]
+        mov     bx, ss:[@@token_ptr]
 
         mov     dx, cs:[bx].@length
         push    dx
@@ -463,19 +463,19 @@ unescapeToken proc c near uses bx dx
         mov     dx, cs:[bx].@ptr
         push    dx
 
-        call    strUnescape
+        call    str_unescape
 
         add     sp, 2 * 2
         mov     word ptr cs:[bx].@length, ax
         ret
 
-unescapeToken endp
+unescape_token endp
 
 
-terminateToken proc c near uses ax bx cx
-        arg @@tokenPtr:word
+terminate_token proc c near uses ax bx cx
+        arg @@token_ptr:word
 
-        mov     bx, ss:[@@tokenPtr]
+        mov     bx, ss:[@@token_ptr]
 
         mov     ax, cs:[bx].@length
         mov     bx, cs:[bx].@ptr
@@ -485,11 +485,11 @@ terminateToken proc c near uses ax bx cx
 
         ret
 
-terminateToken endp
+terminate_token endp
 
 
-tokensCount dw ?
+tokens_count dw ?
 tokens Token 64 dup(?)
-tokensExclusiveEndPtr dw ?
+tokens_exclusive_end_ptr dw ?
 
 text ends

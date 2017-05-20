@@ -1,29 +1,29 @@
 text segment
         assume  cs:text, ds:text, es:text
 
-upperCaseZ = "Z"
-upperCaseA = "A"
-upperCaseF = "F"
-lowerCaseA = "a"
-lowerCaseF = "f"
-lowerCaseZ = "z"
+upper_case_z = "Z"
+upper_case_a = "A"
+upper_case_f = "F"
+lower_case_a = "a"
+lower_case_f = "f"
+lower_case_z = "z"
 space = " "
-backSlash = "\"
+backslash = "\"
 
-toLowerDelta = lowerCaseA - upperCaseA
-toUpperDelta = -toLowerDelta
+to_lower_delta = lower_case_a - upper_case_a
+to_upper_delta = -to_lower_delta
 
-digitsOffset = "0"
-lowerCaseOffset = lowerCaseA - 10
-upperCaseOffset = upperCaseA - 10
+digits_offset = "0"
+lower_case_offset = lower_case_a - 10
+upper_case_offset = upper_case_a - 10
 
 
-parseInt proc c near uses bx cx si
-        arg @@strPtr:word
+parse_int proc c near uses bx cx si
+        arg @@str_ptr:word
         ; returns: ax = integer, cf = 0 on succes
         ; ax = ?, cf = 1 on error
 
-        mov     si, ss:[@@strPtr]
+        mov     si, ss:[@@str_ptr]
 
         xor     bx, bx      ; accumulator
 
@@ -34,7 +34,7 @@ parseInt proc c near uses bx cx si
         test    al, al
         jz      @@finish
 
-        call    parseDigit
+        call    parse_digit
         jc      @@finish
 
         xchg    ax, bx
@@ -48,10 +48,10 @@ parseInt proc c near uses bx cx si
         mov     ax, bx
         ret
 
-parseInt endp
+parse_int endp
 
 
-parseDigit:
+parse_digit:
         ;   args: al -- hexadecimal digit character
         ;   returns: ax = number if no errors, cf = 1 otherwise
 
@@ -61,7 +61,7 @@ parseDigit:
         jb      @@error
         cmp     al, "9"
         ja      @@error
-        sub     al, digitsOffset
+        sub     al, digits_offset
         ret
 
 @@error:
@@ -69,105 +69,105 @@ parseDigit:
         ret
 
 
-strToLower proc c near uses ax cx si di
-        arg @@strPtr:word, @@strLength:word
+str_to_lower proc c near uses ax cx si di
+        arg @@str_ptr:word, @@str_length:word
 
-        mov     cx, ss:[@@strLength]
-        mov     si, ss:[@@strPtr]
-        mov     di, ss:[@@strPtr]
+        mov     cx, ss:[@@str_length]
+        mov     si, ss:[@@str_ptr]
+        mov     di, ss:[@@str_ptr]
 
-@@startLoop:
+@@start_loop:
         lodsb
 
-        cmp     al, upperCaseZ
-        ja      @@isNotLetter
-        cmp     al, upperCaseA
-        jb      @@isNotLetter
+        cmp     al, upper_case_z
+        ja      @@is_not_letter
+        cmp     al, upper_case_a
+        jb      @@is_not_letter
 
-        add     al, toLowerDelta
+        add     al, to_lower_delta
         stosb
-        jmp     @@endLoop
+        jmp     @@end_loop
 
-@@isNotLetter:
+@@is_not_letter:
         inc     di
 
-@@endLoop:
+@@end_loop:
         dec     cx
-        jg      @@startLoop
+        jg      @@start_loop
 
         ret
 
-strToLower endp
+str_to_lower endp
 
 
-strToUpper proc c near uses ax cx si di
-        arg @@strPtr:word, @@strLength:word
+str_to_upper proc c near uses ax cx si di
+        arg @@str_ptr:word, @@str_length:word
 
-        mov     cx, ss:[@@strLength]
-        mov     si, ss:[@@strPtr]
-        mov     di, ss:[@@strPtr]
+        mov     cx, ss:[@@str_length]
+        mov     si, ss:[@@str_ptr]
+        mov     di, ss:[@@str_ptr]
 
-@@startLoop:
+@@start_loop:
         lodsb
 
-        cmp     al, lowerCaseZ
-        ja      @@isNotLetter
-        cmp     al, lowerCaseA
-        jb      @@isNotLetter
+        cmp     al, lower_case_z
+        ja      @@is_not_letter
+        cmp     al, lower_case_a
+        jb      @@is_not_letter
 
-        add     al, toUpperDelta
+        add     al, to_upper_delta
         stosb
-        jmp     @@endLoop
+        jmp     @@end_loop
 
-@@isNotLetter:
+@@is_not_letter:
         inc     di
 
-@@endLoop:
+@@end_loop:
         dec     cx
-        jg      @@startLoop
+        jg      @@start_loop
 
         ret
 
-strToUpper endp
+str_to_upper endp
 
 
-strUnescape proc c near uses si di bx cx
-        arg @@strPtr:word, @@strLength:word
+str_unescape proc c near uses si di bx cx
+        arg @@str_ptr:word, @@str_length:word
 
-        mov     si, ss:[@@strPtr]
+        mov     si, ss:[@@str_ptr]
         mov     di, si
-        mov     cx, ss:[@@strLength]
+        mov     cx, ss:[@@str_length]
         xor     bx, bx      ; unescaped string length
         xor     dl, dl      ; escaped flag
 
-@@unescapeLoop:
+@@unescape_loop:
         lodsb
         cmp     al, backslash
-        jne     @@isNotEscape
+        jne     @@is_not_escape
 
         test    dl, dl
-        jnz     @@isNotEscape
+        jnz     @@is_not_escape
 
         mov     dl, 1
         jmp     @@continue
 
 
-@@isNotEscape:
+@@is_not_escape:
         xor     dl, dl
         inc     bx
         stosb
 
 @@continue:
         dec     cx
-        jg      @@unescapeLoop
+        jg      @@unescape_loop
 
         mov     ax, bx
         ret
 
-strUnescape endp
+str_unescape endp
 
 
-strCompare proc c near uses si di cx
+str_compare proc c near uses si di cx
         arg @@first:word, @@second:word
         ; compare two zero terminated strings
         ; returns: ax = 0 if strings are equal, 1 otherwise
@@ -176,7 +176,7 @@ strCompare proc c near uses si di cx
         mov     di, ss:[@@first]
 
         push    si
-        call    strLength
+        call    str_length
         add     sp, 2
         mov     cx, ax
 
@@ -185,32 +185,32 @@ strCompare proc c near uses si di cx
         mov     ds, ax
 
         push    di
-        call    strLength
+        call    str_length
         add     sp, 2
 
         pop     ds
 
         cmp     cx, ax
-        jne     @@compareFail
+        jne     @@compare_fail
 
-@@compareLoop:
+@@compare_loop:
         cmpsb
-        jne     @@compareFail
+        jne     @@compare_fail
         dec     cx
-        jnz     @@compareLoop
+        jnz     @@compare_loop
         xor     ax, ax
         jmp     @@return
 
-@@compareFail:
+@@compare_fail:
         mov     ax, 1
 
 @@return:
         ret
 
-strCompare endp
+str_compare endp
 
 
-strLength proc c near uses si cx
+str_length proc c near uses si cx
         arg @@string:word
         ; calculate a length of the zero terminated string
         ; returns: ax = length of the given string
@@ -218,7 +218,7 @@ strLength proc c near uses si cx
         mov     si, ss:[@@string]
         xor     cx, cx
 
-@@lengthLoop:
+@@length_loop:
         lodsw
         test    al, al
         jz      @@finish
@@ -226,23 +226,23 @@ strLength proc c near uses si cx
         test    ah, ah
         jz      @@finish
         inc     cx
-        jmp     @@lengthLoop
+        jmp     @@length_loop
 
 @@finish:
         mov     ax, cx
         ret
 
-strLength endp
+str_length endp
 
 
-strPrint proc c near uses ax bx dx
+str_print proc c near uses ax bx dx
         ; print zero terminated string
         arg @@string:word
 
         mov     dx, ss:[@@string]
 
         push    dx
-        call    strLength
+        call    str_length
         add     sp, 2
 
         mov     bx, dx
@@ -256,6 +256,6 @@ strPrint proc c near uses ax bx dx
 
         ret
 
-strPrint endp
+str_print endp
 
 text ends

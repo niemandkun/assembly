@@ -14,24 +14,24 @@ text segment
 
 handler:        ; смещения обработчиков для каждой команды
         dw      0,      offset exit
-        dw      1,      offset keyUp
-        dw      2,      offset keyRight
-        dw      3,      offset keyLeft
-        dw      4,      offset keyDown
+        dw      1,      offset key_up
+        dw      2,      offset key_right
+        dw      3,      offset key_left
+        dw      4,      offset key_down
         dw      0FFFFh
 
 start:
-        call    parseArgs
+        call    parse_args
 
         mov     ax, cs
         mov     ds, ax
         mov     es, ax
 
-        call    setupVector
+        call    setup_vector
 
 @@1:
         hlt
-        call    ringBufferRead
+        call    ring_buffer_read
         jc      @@1
         mov     si, offset handler
         xor     ah, ah
@@ -51,30 +51,30 @@ start:
 
 
 exit proc near
-        call    restoreVector
+        call    restore_vector
         mov     ah, 4ch
         int     21h
 exit endp
 
-keyUp proc near
+key_up proc near
         print
         ret
-keyUp endp
+key_up endp
 
-keyDown proc near
+key_down proc near
         print
         ret
-keyDown endp
+key_down endp
 
-keyLeft proc near
+key_left proc near
         print
         ret
-keyLeft endp
+key_left endp
 
-keyRight proc near
+key_right proc near
         print
         ret
-keyRight endp
+key_right endp
 
 text ends
 
