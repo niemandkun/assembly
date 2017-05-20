@@ -9,6 +9,8 @@ include print.asm
 include args.asm
 include ringbuf.asm
 include inter.asm
+include sound.asm
+include zelda.asm
 
 text segment
         assume  cs:text, ds:text, es:text
@@ -30,6 +32,7 @@ start:
         mov     es, ax
 
         call    setup_vector
+        call    start_player
 
 @@1:
         hlt
@@ -55,14 +58,13 @@ start:
 ;       handlers:
 
 exit:
+        call    stop_player
         call    restore_vector
         mov     ah, 4ch
         int     21h
 
 on_tick:
-        push    ax
-        call    print_word
-        pop     ax
+        call    update_player
         ret
 
 key_up:

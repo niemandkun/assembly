@@ -1,20 +1,55 @@
-soundOn proc near
+text segment
+
+sound_on proc near
         in      al, 61h
         or      al, 00000011b
         out     61h, al
         ret
-soundOn endp
+sound_on endp
 
 
-soundOff proc near
+sound_off proc near
         in      al, 61h
         and     al, 11111100b
         out     61h, al
         ret
-soundOff endp
+sound_off endp
 
 
-playNote proc near
+setup_sys_timer proc near
+        mov     ax, 4000h
+        call    set_sys_timer_freq
+        ret
+setup_sys_timer endp
+
+
+reset_sys_timer proc near
+        xor     ax, ax
+        call    set_sys_timer_freq
+        ret
+reset_sys_timer endp
+
+
+set_sys_timer_freq proc near
+        push    bx
+        mov     bx, ax
+
+        cli
+        mov     al, 00110100b
+        out     43h, al
+
+        mov     ax, bx
+        out     40h, al
+        mov     al, ah
+        out     40h, al
+        sti
+
+        pop     bx
+        ret
+set_sys_timer_freq endp
+
+
+play_note proc near
 
         ; args:
         ;       ah - scancode
@@ -29,19 +64,19 @@ playNote proc near
         xor     bh, bh
         lea     si, [scale]
 
-@@searchCycle:
+@@search_cycle:
         lodsw
         cmp     ax, 0FFh
         je      @@finish
         cmp     ax, bx
-        je      @@keyFound
+        je      @@key_found
         add     si, 2
-        jmp     @@searchCycle
+        jmp     @@search_cycle
 
-@@keyFound:
+@@key_found:
         lodsw
-        call    setSoundFreq
-        call    soundOn
+        call    set_sound_freq
+        call    sound_on
 
 @@finish:
         pop     si
@@ -49,16 +84,15 @@ playNote proc near
         pop     ax
         ret
 
-playNote endp
+play_note endp
 
 
-setSoundFreq proc near
+set_sound_freq proc near
 
         ; args:
         ;       ax - sound frequency
         ; ret:
         ;       none
-
         push    bx
         mov     bx, ax
 
@@ -74,8 +108,101 @@ setSoundFreq proc near
         pop     bx
         ret
 
-setSoundFreq endp
+set_sound_freq endp
 
+
+ticks dw 0
+note dw 0
+duration dw 0
+
+
+start_player proc c near uses ax
+        xor     ax, ax
+        call    set_sound_freq
+        call    setup_sys_timer
+        call    sound_on
+        mov     note, offset zelda
+        ret
+start_player endp
+
+
+update_player proc c near uses ax bx
+        mov     ax, ticks
+        mov     bx, duration
+        cmp     ax, bx
+        jge     @@play_next_note
+
+        add     ax, 24
+        mov     ticks, ax
+
+        cmp     ax, bx
+        jge     @@mute_note
+
+        jmp     @@finish
+
+@@play_next_note:
+        xor     ax, ax
+        mov     ticks, ax
+
+        call    next_note
+        jmp     @@finish
+
+@@mute_note:
+        xor     ax, ax
+        call    set_sound_freq
+
+@@finish:
+        ret
+update_player endp
+
+
+stop_player proc c near uses ax
+        xor     ax, ax
+        call    set_sound_freq
+        call    reset_sys_timer
+        call    sound_off
+        ret
+stop_player endp
+
+
+next_note proc c near uses ax bx cx si ds
+
+        mov     ax, zelda_segment
+        mov     ds, ax
+
+        mov     si, cs:note
+        lodsw
+
+        cmp     ax, 0ffffh
+        je      @@player_restart
+
+        mov     cs:duration, ax
+
+        xor     ax, ax
+        lodsb
+
+        sub     ax, 60
+        add     ax, 24
+        mov     cx, 2
+        shl     ax, cl
+        add     ax, 2
+        add     ax, offset scale
+        mov     bx, ax
+        mov     ax, cs:[bx]
+
+        call    set_sound_freq
+
+        mov     cs:note, si
+        jmp     @@finish
+
+@@player_restart:
+        mov     cs:duration, 0
+        mov     cs:note, offset zelda
+
+@@finish:
+        ret
+
+next_note endp
 
 scale:
         dw      02h,    18242
@@ -131,3 +258,6 @@ scale:
         dw      36h,    1207
 
         dw      0FFh
+
+
+text ends
