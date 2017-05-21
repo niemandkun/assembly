@@ -69,7 +69,7 @@ init_model      proc c near uses ax bx cx dx es
         call    random_get      ; column in AX
 
         call    get_tile_ptr
-        mov     es:[bx].@collision_proc, offset collide_apple
+        mov     es:[bx].@collision_proc, offset collide_bad_apple
         mov     es:[bx].@draw_proc, offset draw_apple
 
         dec     cx
@@ -177,6 +177,8 @@ check_collision proc near
         jz      @@finish
         call    ax
         mov     es:[bx].@collision_proc, ax
+        mov     ax, com_sound
+        call    ring_buffer_write
 
 @@finish:
         pop     ax
@@ -187,11 +189,16 @@ check_collision endp
 
 collide_apple   proc near
         inc     delta_length
-        mov     ax, com_sound
-        call    ring_buffer_write
         xor     ax, ax
         ret
 collide_apple   endp
+
+
+collide_bad_apple proc near
+        call    move_tail
+        xor     ax, ax
+        ret
+collide_bad_apple endp
 
 
 get_tile_ptr    proc near

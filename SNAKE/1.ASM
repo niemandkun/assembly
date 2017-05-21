@@ -19,26 +19,27 @@ text segment
         assume  cs:text, ds:text, es:text
 
 state_game:     ; offsets of handlers for each command
-        dw      com_exit,   offset pause
-        dw      com_up,     offset key_up
-        dw      com_right,  offset key_right
-        dw      com_left,   offset key_left
-        dw      com_down,   offset key_down
-        dw      com_tick,   offset game_tick
-        dw      com_faster, offset speed_up
-        dw      com_slower, offset speed_down
-        dw      com_sound,  offset on_sound
+        dw      com_exit,       offset pause
+        dw      com_up,         offset key_up
+        dw      com_right,      offset key_right
+        dw      com_left,       offset key_left
+        dw      com_down,       offset key_down
+        dw      com_tick,       offset game_tick
+        dw      com_faster,     offset speed_up
+        dw      com_slower,     offset speed_down
+        dw      com_sound,      offset on_sound
+        dw      com_gameover,   offset gameover
         dw      0FFFFh
 
 state_pause:
-        dw      com_exit,   offset gameover
-        dw      com_tick,   offset menu_tick
-        dw      com_start,  offset continue
+        dw      com_exit,       offset gameover
+        dw      com_tick,       offset menu_tick
+        dw      com_start,      offset continue
         dw      0FFFFh
 
 state_gameover:
-        dw      com_exit,   offset exit
-        dw      com_tick,   offset menu_tick
+        dw      com_exit,       offset exit
+        dw      com_tick,       offset menu_tick
         dw      0FFFFh
 
 state   dw      offset state_pause
