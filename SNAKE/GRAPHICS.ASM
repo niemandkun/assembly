@@ -17,6 +17,31 @@ old_page db ?
 old_mode db ?
 
 
+snake_color = 15h
+head_color = 17h
+field_color = 5Bh
+
+
+draw_snake:
+        mov     [si].@draw_proc, 0
+        mov     cl, snake_color
+        call    fill_tile
+        ret
+
+
+draw_head:
+        mov     cl, head_color
+        call    fill_tile
+        ret
+
+
+draw_empty:
+        mov     [si].@draw_proc, 0
+        mov     cl, field_color
+        call    fill_tile
+        ret
+
+
 enable_graphics   proc
         push    es
         push    ax
@@ -99,7 +124,7 @@ draw_tiles      proc c near uses ax bx cx si ds es
 draw_tiles      endp
 
 
-draw_tile       proc c near uses ax bx cx dx di si
+draw_tile       proc c near uses cx
         ; args:
         ;       es - buffer segment
         ;       ax - most left column
@@ -107,31 +132,31 @@ draw_tile       proc c near uses ax bx cx dx di si
         ;       ds:si - pointer to Tile
         ; ret:
         ;       none
-        mov     cx, [si].@snake_next
-        cmp     cx, head_of_snake
-        je      @@snake_head
+        mov     cx, [si].@draw_proc
         test    cx, cx
-        jnz     @@snake
+        jz      @@finish
+        call    cx
+@@finish:
+        ret
+draw_tile       endp
 
-@@empty:
-        mov     cl, 5Bh
-        jmp     @@draw
 
-@@snake:
-        mov     cl, 0Ah
-        jmp     @@draw
+fill_tile       proc c near uses ax bx dx si di
+        ; args:
+        ;       ax - column
+        ;       bx - row
+        ;       cl - color
+        ; ret:
+        ;       none
 
-@@snake_head:
-        mov     cl, 0Ch
-
-@@draw:
-
-        mov     dx, cx
+        ; compare colors
+        ; if colors match, nothing to do
+        push    cx
         call    get_pixel
+        mov     dx, cx
+        pop     cx
         cmp     cl, dl
         je      @@finish
-
-        mov     cx, dx
 
         mov     di, tile_height
         dec     di
@@ -152,7 +177,7 @@ draw_tile       proc c near uses ax bx cx dx di si
 
 @@finish:
         ret
-draw_tile       endp
+fill_tile       endp
 
 
 clear_screen    proc
@@ -162,7 +187,8 @@ clear_screen    proc
         mov     es, ax
         lea     di, [double_buffer]
         xor     di, di
-        mov     ax, 1313h
+        mov     ah, field_color
+        mov     al, field_color
         mov     cx, 32000
         rep     stosw
 

@@ -68,6 +68,7 @@ move_head       proc c near uses ax bx
         ; got ptr to new snake head in BX
 
         mov     es:[bx].@snake_next, head_of_snake
+        mov     es:[bx].@draw_proc, offset draw_head
 
         xchg    ax, cx
         xchg    bx, dx
@@ -77,6 +78,7 @@ move_head       proc c near uses ax bx
         ; got ptr to old snake head in BX
 
         mov     es:[bx].@snake_next, dx
+        mov     es:[bx].@draw_proc, offset draw_snake
         ret
 move_head       endp
 
@@ -96,6 +98,7 @@ move_tail       proc c near uses ax bx
         mov     ax, es:[bx].@snake_next
         mov     snake_tail_ptr, ax
         mov     es:[bx].@snake_next, 0
+        mov     es:[bx].@draw_proc, offset draw_empty
 
 @@finish:
         ret
