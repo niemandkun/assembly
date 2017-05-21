@@ -24,6 +24,8 @@ handler:        ; offsets of handlers for each command
         dw      com_left,   offset key_left
         dw      com_down,   offset key_down
         dw      com_tick,   offset on_tick
+        dw      com_faster, offset speed_up
+        dw      com_slower, offset speed_down
         dw      0FFFFh
 
 start:
@@ -68,19 +70,23 @@ exit:
         int     21h
 
 ticks dw 0
+update_interval dw 10h
 
 on_tick:
+        push    ax
         call    update_player
 
         inc     ticks
-        cmp     ticks, 20
-        jne     @@finish
+        mov     ax, update_interval
+        cmp     ticks, ax
+        jl      @@finish
 
         call    update_model
         call    draw_scene
         mov     ticks, 0
 
 @@finish:
+        pop     ax
         ret
 
 key_up:
@@ -101,6 +107,22 @@ key_left:
 key_right:
         mov     velocity_x, 1
         mov     velocity_y, 0
+        ret
+
+speed_up:
+        dec     update_interval
+        cmp     update_interval, 0
+        jg      @@finish
+        mov     update_interval, 1
+@@finish:
+        ret
+
+speed_down:
+        inc     update_interval
+        cmp     update_interval, 10h
+        jle     @@finish
+        mov     update_interval, 10h
+@@finish:
         ret
 
 text ends

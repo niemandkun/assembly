@@ -4,3 +4,5 @@ com_right   equ 2
 com_up      equ 3
 com_down    equ 4
 com_tick    equ 5
+com_faster  equ 6
+com_slower  equ 7

@@ -18,6 +18,8 @@ key_commands:
         db      4Dh,    com_right
         db      4Bh,    com_left
         db      48h,    com_down
+        db      8Ch,    com_slower
+        db      8Dh,    com_faster
         db      0FFh,   0FFh    ; EOT
 
 
