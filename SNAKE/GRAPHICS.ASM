@@ -31,32 +31,42 @@ rubber_wall_color = 39h
 portal_wall_color = 09h
 
 draw_head:
-        mov     cl, head_color
-        call    fill_tile
+        push    si
+        mov     si, offset snake_head_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_snake
         ret
 
 draw_apple:
-        mov     cl, apple_color
-        call    fill_tile
+        push    si
+        mov     si, offset apple_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_apple
         ret
 
 draw_bad_apple:
-        mov     cl, bad_apple_color
-        call    fill_tile
+        push    si
+        mov     si, offset bad_apple_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_bad_apple
         ret
 
 draw_poison:
-        mov     cl, poison_color
-        call    fill_tile
+        push    si
+        mov     si, offset poison_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_poison
         ret
 
 draw_snake:
-        mov     cl, snake_color
-        call    fill_tile
+        push    si
+        mov     si, offset snake_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_snake
         ret
 
@@ -67,20 +77,26 @@ draw_empty:
         ret
 
 draw_rubber_wall:
-        mov     cl, rubber_wall_color
-        call    fill_tile
+        push    si
+        mov     si, offset rubber_wall_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_rubber_wall
         ret
 
 draw_deadly_wall:
-        mov     cl, deadly_wall_color
-        call    fill_tile
+        push    si
+        mov     si, offset deadly_wall_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_deadly_wall
         ret
 
 draw_portal_wall:
-        mov     cl, portal_wall_color
-        call    fill_tile
+        push    si
+        mov     si, offset portal_wall_bitmap
+        call    draw_bitmap
+        pop     si
         mov     ax, offset draw_portal_wall
         ret
 
@@ -196,12 +212,12 @@ fill_tile       proc c near uses ax bx dx si di
 
         ; compare colors
         ; if colors match, nothing to do
-        push    cx
-        call    get_pixel
-        mov     dx, cx
-        pop     cx
-        cmp     cl, dl
-        je      @@finish
+        ;push    cx
+        ;call    get_pixel
+        ;mov     dx, cx
+        ;pop     cx
+        ;cmp     cl, dl
+        ;je      @@finish
 
         mov     di, tile_height
         dec     di
@@ -225,6 +241,48 @@ fill_tile       proc c near uses ax bx dx si di
 fill_tile       endp
 
 
+draw_bitmap     proc c near uses ax bx cx dx si di ds
+        ; args:
+        ;       ax - column
+        ;       bx - row
+        ;       si - bitmap ptr
+        ; ret:
+        ;       none
+
+        call    get_pixel_addr
+        mov     di, bx
+        ; DI = offset of top-left pixel
+
+        mov     ax, cs
+        mov     ds, ax
+
+        lodsw   ; width
+        mov     cx, ax
+        lodsw   ; height
+        mul     cx
+        mov     dx, ax
+        ; DX = total size of bitmap
+        ; CX = width of bitmap
+@@1:
+        mov     ax, cx
+@@2:
+        movsb
+
+        dec     dx
+        jz      @@finish
+
+        dec     ax
+        jnz     @@2
+
+        add     di, 320
+        sub     di, cx
+        jmp     @@1
+
+@@finish:
+        ret
+draw_bitmap     endp
+
+
 clear_screen    proc
         push    es
 
@@ -242,45 +300,50 @@ clear_screen    proc
 clear_screen    endp
 
 
-set_pixel       proc c uses ax bx dx es
+set_pixel       proc c uses ax bx
         ; args:
         ;       ax - column
         ;       bx - row
         ;       cl - color
         ; ret:
         ;       none
-        xchg    ax, bx
-        mov     dx, 320
-        mul     dx
-        add     bx, ax
-        add     bx, offset double_buffer
-
-        mov     ax, buffer_segment
-        mov     es, ax
+        call    get_pixel_addr
         mov     byte ptr es:[bx], cl
 
         ret
 set_pixel       endp
 
 
-get_pixel       proc c uses ax bx dx es
+get_pixel       proc c uses ax bx
         ; args:
         ;       ax - column
         ;       bx - row
         ; ret:
         ;       cl - color
+        call    get_pixel_addr
+        mov     cl, byte ptr es:[bx]
+
+        ret
+get_pixel       endp
+
+
+get_pixel_addr  proc
+        ; args:
+        ;       ax - column
+        ;       bx - row
+        ; ret:
+        ;       bx - address of pixel in double buffer
+
+        push    dx
         xchg    ax, bx
         mov     dx, 320
         mul     dx
         add     bx, ax
         add     bx, offset double_buffer
 
-        mov     ax, buffer_segment
-        mov     es, ax
-        mov     cl, byte ptr es:[bx]
-
+        pop     dx
         ret
-get_pixel       endp
+get_pixel_addr  endp
 
 
 push_buffer     proc
