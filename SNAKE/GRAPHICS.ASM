@@ -17,13 +17,18 @@ old_page db ?
 old_mode db ?
 
 
-snake_color = 04h
-head_color = 0Ch
 field_color = 5Bh
-apple_color = 02h
-bad_apple_color = 06h
-poison_color = 05h
 
+head_color = 0Ch
+snake_color = 04h
+
+apple_color = 02h
+poison_color = 05h
+bad_apple_color = 06h
+
+deadly_wall_color = 00h
+rubber_wall_color = 39h
+portal_wall_color = 09h
 
 draw_head:
         mov     cl, head_color
@@ -59,6 +64,24 @@ draw_empty:
         mov     cl, field_color
         call    fill_tile
         xor     ax, ax
+        ret
+
+draw_rubber_wall:
+        mov     cl, rubber_wall_color
+        call    fill_tile
+        mov     ax, offset draw_rubber_wall
+        ret
+
+draw_deadly_wall:
+        mov     cl, deadly_wall_color
+        call    fill_tile
+        mov     ax, offset draw_deadly_wall
+        ret
+
+draw_portal_wall:
+        mov     cl, portal_wall_color
+        call    fill_tile
+        mov     ax, offset draw_portal_wall
         ret
 
 

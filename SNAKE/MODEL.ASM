@@ -48,6 +48,27 @@ items:
     dw offset draw_poison, offset collide_poison
     dw offset draw_poison, offset collide_poison
 
+walls:
+    dw offset draw_deadly_wall, offset collide_deadly_wall
+    dw offset draw_rubber_wall, offset collide_rubber_wall
+    dw offset draw_portal_wall, offset collide_portal_wall
+
+map:
+    dw      5, 4,       5, 15,      2
+    dw      26, 4,      26, 15,     2
+    dw      11, 0,      20, 0,      1
+    dw      11, 19,     20, 19,     1
+    dw      9, 4,       10, 4,      0
+    dw      21, 4,      22, 4,      0
+    dw      9, 15,      10, 15,     0
+    dw      21, 15,     22, 15,     0
+    dw      0ffffh
+
+portals:
+    dw      5, 26
+    dw      26, 5
+    dw      0ffffh
+
 init_model      proc c near uses ax bx cx dx es
         mov     ax, tiles
         mov     es, ax
@@ -62,6 +83,8 @@ init_model      proc c near uses ax bx cx dx es
 
         mov     bx, snake_head_ptr
         mov     es:[bx], dx
+
+        call    build_walls
 
         ; spawn initial items
         mov     cx, items_count
@@ -115,6 +138,61 @@ spawn_item      proc c near uses ax bx cx si
 
         ret
 spawn_item      endp
+
+
+build_walls     proc
+        mov     di, offset map
+@@cycle:
+        mov     ax, [di]
+        cmp     ax, 0ffffh
+        je      @@finish
+        mov     bx, [di+2]
+        mov     cx, [di+4]
+        mov     dx, [di+6]
+        mov     si, [di+8]
+        shl     si, 1
+        shl     si, 1
+        add     si, offset walls
+        call    build_wall
+        add     di, 10
+        jmp     @@cycle
+@@finish:
+        ret
+build_walls     endp
+
+
+build_wall      proc
+        ; args:
+        ;       (AX, BX), (CX, DX) = coordinates
+        ;       SI = ptr to callbacks
+        push    di
+        mov     di, ax
+@@y:
+        mov     ax, di
+@@x:
+        push    ax
+        push    bx
+
+        call    get_tile_ptr
+        mov     ax, [si]
+        mov     es:[bx].@draw_proc, ax
+        mov     ax, [si+2]
+        mov     es:[bx].@collision_proc, ax
+
+        pop     bx
+        pop     ax
+
+        inc     ax
+        cmp     ax, cx
+        jle     @@x
+
+        inc     bx
+        cmp     bx, dx
+        jle     @@y
+
+        pop     di
+        ret
+build_wall      endp
 
 
 update_model    proc c near uses ax bx es
@@ -205,7 +283,7 @@ move_tail       endp
 rotate_snake    proc c near uses ax bx si di
         mov     bx, snake_tail_ptr
         mov     bx, es:[bx]
-        mov     es:[bx].@draw_proc, offset draw_head
+        ;mov     es:[bx].@draw_proc, offset draw_head
 
         mov     bx, snake_head_ptr
         mov     bx, es:[bx]
@@ -251,7 +329,6 @@ check_collision proc near
         test    ax, ax
         jz      @@finish
         call    ax
-        mov     es:[bx].@collision_proc, ax
         mov     ax, com_sound
         call    ring_buffer_write
 
@@ -266,7 +343,7 @@ collide_apple   proc near
         inc     delta_length
         mov     ax, 4
         call    spawn_item
-        xor     ax, ax
+        mov     es:[bx].@collision_proc, 0
         ret
 collide_apple   endp
 
@@ -284,7 +361,7 @@ collide_bad_apple proc near
 @@finish:
         mov     ax, 4
         call    spawn_item
-        xor     ax, ax
+        mov     es:[bx].@collision_proc, 0
         ret
 collide_bad_apple endp
 
@@ -292,9 +369,78 @@ collide_bad_apple endp
 collide_poison  proc near
         mov     ax, com_gameover
         call    ring_buffer_write
-        xor     ax, ax
+        mov     es:[bx].@collision_proc, 0
         ret
 collide_poison  endp
+
+
+collide_deadly_wall proc near
+        mov     ax, com_gameover
+        call    ring_buffer_write
+        mov     es:[bx].@draw_proc, offset draw_deadly_wall
+        ret
+collide_deadly_wall endp
+
+
+collide_rubber_wall proc near
+        call    rotate_snake
+        call    move_head
+        call    move_tail
+        mov     es:[bx].@draw_proc, offset draw_rubber_wall
+        ret
+collide_rubber_wall endp
+
+
+collide_portal_wall proc c near uses ax bx cx si
+        mov     es:[bx].@draw_proc, offset draw_portal_wall
+        mov     es:[bx].@snake, 0
+
+        mov     ax, bx
+        call    get_coords
+
+        mov     cx, ax  ; column
+
+        mov     si, offset portals
+@@find_target:
+        lodsw
+        cmp     ax, 0ffffh
+        je      @@finish
+        cmp     ax, cx
+        je      @@teleport
+        add     si, 2
+        jmp     @@find_target
+
+@@teleport:
+        lodsw
+        ; AX = column
+        ; BX = row
+
+        cmp     bx, 15
+        jne     @@1
+        mov     bx, 4
+        jmp     @@2
+@@1:
+        cmp     bx, 4
+        jne     @@2
+        mov     bx, 15
+@@2:
+        add     ax, velocity_x
+        add     bx, velocity_y
+
+        mov     snake_head_x, ax
+        mov     snake_head_y, bx
+
+        call    get_tile_ptr
+
+        mov     si, snake_head_ptr
+        mov     es:[si], bx
+
+        mov     es:[bx].@draw_proc, offset draw_head
+        inc     es:[bx].@snake
+
+@@finish:
+        ret
+collide_portal_wall endp
 
 
 get_tile_ptr    proc near
