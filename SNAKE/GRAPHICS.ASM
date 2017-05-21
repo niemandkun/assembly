@@ -32,6 +32,8 @@ enable_graphics   proc
         mov     ax, 13h
         int     10h
 
+        call    clear_screen
+
         pop     ax
         pop     es
         ret
@@ -50,7 +52,6 @@ disable_graphics   endp
 
 
 draw_scene      proc
-        call    clear_screen
         call    draw_tiles
         call    push_buffer
         ret
@@ -98,7 +99,7 @@ draw_tiles      proc c near uses ax bx cx si ds es
 draw_tiles      endp
 
 
-draw_tile       proc
+draw_tile       proc c near uses ax bx cx dx di si
         ; args:
         ;       es - buffer segment
         ;       ax - most left column
@@ -106,12 +107,50 @@ draw_tile       proc
         ;       ds:si - pointer to Tile
         ; ret:
         ;       none
-
-        ; TODO
         mov     cx, [si].@snake_next
-        add     cl, 9
-        call    set_pixel
+        cmp     cx, head_of_snake
+        je      @@snake_head
+        test    cx, cx
+        jnz     @@snake
 
+@@empty:
+        mov     cl, 5Bh
+        jmp     @@draw
+
+@@snake:
+        mov     cl, 0Ah
+        jmp     @@draw
+
+@@snake_head:
+        mov     cl, 0Ch
+
+@@draw:
+
+        mov     dx, cx
+        call    get_pixel
+        cmp     cl, dl
+        je      @@finish
+
+        mov     cx, dx
+
+        mov     di, tile_height
+        dec     di
+@@cycle_y:
+        mov     si, tile_width
+        dec     si
+@@cycle_x:
+        add     ax, si
+        add     bx, di
+        call    set_pixel
+        sub     bx, di
+        sub     ax, si
+
+        dec     si
+        jge     @@cycle_x
+        dec     di
+        jge     @@cycle_y
+
+@@finish:
         ret
 draw_tile       endp
 
@@ -123,7 +162,7 @@ clear_screen    proc
         mov     es, ax
         lea     di, [double_buffer]
         xor     di, di
-        xor     ax, ax
+        mov     ax, 1313h
         mov     cx, 32000
         rep     stosw
 
@@ -139,7 +178,6 @@ set_pixel       proc c uses ax bx dx es
         ;       cl - color
         ; ret:
         ;       none
-
         xchg    ax, bx
         mov     dx, 320
         mul     dx
@@ -152,6 +190,26 @@ set_pixel       proc c uses ax bx dx es
 
         ret
 set_pixel       endp
+
+
+get_pixel       proc c uses ax bx dx es
+        ; args:
+        ;       ax - column
+        ;       bx - row
+        ; ret:
+        ;       cl - color
+        xchg    ax, bx
+        mov     dx, 320
+        mul     dx
+        add     bx, ax
+        add     bx, offset double_buffer
+
+        mov     ax, buffer_segment
+        mov     es, ax
+        mov     cl, byte ptr es:[bx]
+
+        ret
+get_pixel       endp
 
 
 push_buffer     proc
