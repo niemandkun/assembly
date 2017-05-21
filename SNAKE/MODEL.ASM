@@ -43,6 +43,10 @@ snake_tail_ptr dw offset snake
 
 items_count dw 10
 
+items:
+    dw offset draw_apple, offset collide_apple
+    dw offset draw_bad_apple, offset collide_bad_apple
+    dw offset draw_poison, offset collide_poison
 
 init_model      proc c near uses ax bx cx dx es
         mov     ax, tiles
@@ -62,21 +66,59 @@ init_model      proc c near uses ax bx cx dx es
         ; spawn initial items
         mov     cx, items_count
 @@cycle:
-        mov     ax, field_height
-        call    random_get
-        mov     bx, ax          ; row in BX
-        mov     ax, field_width
-        call    random_get      ; column in AX
+        ;mov     ax, field_height
+        ;call    random_get
+        ;mov     bx, ax          ; row in BX
+        ;mov     ax, field_width
+        ;call    random_get      ; column in AX
 
-        call    get_tile_ptr
-        mov     es:[bx].@collision_proc, offset collide_bad_apple
-        mov     es:[bx].@draw_proc, offset draw_apple
+        ;call    get_tile_ptr
+        ;mov     es:[bx].@collision_proc, offset collide_bad_apple
+        ;mov     es:[bx].@draw_proc, offset draw_apple
+
+        call    spawn_item
 
         dec     cx
         jnz     @@cycle
 
         ret
 init_model      endp
+
+
+spawn_item      proc c near uses ax bx cx si
+
+@@cycle:
+        mov     ax, field_height
+        call    random_get
+        mov     bx, ax          ; row in BX
+        mov     ax, field_width
+        call    random_get      ; column in AX
+
+        call    get_tile_ptr    ; ptr to tile in BX
+
+        cmp     es:[bx].@collision_proc, 0
+        jne     @@cycle
+
+        cmp     es:[bx].@snake, 0
+        jne     @@cycle
+
+        mov     ax, 3
+        call    random_get
+
+        shl     ax, 1
+        shl     ax, 1
+        add     ax, offset items
+
+        mov     si, ax
+
+        lodsw
+        mov     es:[bx].@draw_proc, ax
+
+        lodsw
+        mov     es:[bx].@collision_proc, ax
+
+        ret
+spawn_item      endp
 
 
 update_model    proc c near uses ax bx es
@@ -196,9 +238,26 @@ collide_apple   endp
 
 collide_bad_apple proc near
         call    move_tail
+
+        mov     ax, snake_head_ptr
+        cmp     ax, snake_tail_ptr
+        jne     @@finish
+
+        mov     ax, com_gameover
+        call    ring_buffer_write
+
+@@finish:
         xor     ax, ax
         ret
 collide_bad_apple endp
+
+
+collide_poison  proc near
+        mov     ax, com_gameover
+        call    ring_buffer_write
+        xor     ax, ax
+        ret
+collide_poison  endp
 
 
 get_tile_ptr    proc near

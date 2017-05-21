@@ -118,6 +118,7 @@ duration dw 0
 
 
 start_music proc c near uses ax
+        mov     short_sound_duration, 0
         mov     note, offset zelda
         mov     music_on, 1
         call    update_sound
@@ -127,8 +128,12 @@ start_music endp
 
 
 update_sound proc c near uses ax bx
+        cmp     short_sound_duration, 0
+        je      @@music_update
+
         call    update_short_sound
 
+@@music_update:
         cmp     music_on, 0
         je      @@finish
 
@@ -190,8 +195,6 @@ update_short_sound proc
         push    ax
 
         mov     ax, short_sound_duration
-        test    ax, ax
-        jz      @@finish
 
         dec     ax
         mov     short_sound_duration, ax

@@ -21,6 +21,8 @@ snake_color = 04h
 head_color = 0Ch
 field_color = 5Bh
 apple_color = 02h
+bad_apple_color = 06h
+poison_color = 05h
 
 
 draw_head:
@@ -33,6 +35,18 @@ draw_apple:
         mov     cl, apple_color
         call    fill_tile
         mov     ax, offset draw_apple
+        ret
+
+draw_bad_apple:
+        mov     cl, bad_apple_color
+        call    fill_tile
+        mov     ax, offset draw_bad_apple
+        ret
+
+draw_poison:
+        mov     cl, poison_color
+        call    fill_tile
+        mov     ax, offset draw_poison
         ret
 
 draw_snake:
