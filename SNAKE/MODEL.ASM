@@ -172,10 +172,10 @@ check_collision proc near
         mov     bx, es:[bx]
         ; got pointer to head tile in bx
 
-        mov     bx, es:[bx].@collision_proc
-        test    bx, bx
+        mov     ax, es:[bx].@collision_proc
+        test    ax, ax
         jz      @@finish
-        call    bx
+        call    ax
         mov     es:[bx].@collision_proc, ax
 
 @@finish:

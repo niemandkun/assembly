@@ -111,22 +111,28 @@ set_sound_freq proc near
 set_sound_freq endp
 
 
+music_on dw 0
 sound_ticks dw 0
 note dw 0
 duration dw 0
 
 
-start_player proc c near uses ax
+start_music proc c near uses ax
         xor     ax, ax
         call    set_sound_freq
-        call    setup_sys_timer
         call    sound_on
         mov     note, offset zelda
+        mov     music_on, 1
         ret
-start_player endp
+start_music endp
 
 
-update_player proc c near uses ax bx
+update_sound proc c near uses ax bx
+        call    update_short_sound
+
+        cmp     music_on, 0
+        je      @@finish
+
         mov     ax, sound_ticks
         mov     bx, duration
         cmp     ax, bx
@@ -153,16 +159,54 @@ update_player proc c near uses ax bx
 
 @@finish:
         ret
-update_player endp
+update_sound endp
 
 
-stop_player proc c near uses ax
+stop_music proc c near uses ax
         xor     ax, ax
         call    set_sound_freq
-        call    reset_sys_timer
         call    sound_off
+        mov     music_on, 0
         ret
-stop_player endp
+stop_music endp
+
+
+default_duration = 7
+short_sound_duration dw 0
+
+
+play_short_sound proc
+        ; args:
+        ;       AX = frequency
+        ; ret:
+        ;       none
+        mov     short_sound_duration, default_duration
+        call    set_sound_freq
+        call    sound_on
+        ret
+play_short_sound endp
+
+
+update_short_sound proc
+        push    ax
+
+        mov     ax, short_sound_duration
+        test    ax, ax
+        jz      @@finish
+
+        dec     ax
+        mov     short_sound_duration, ax
+        test    ax, ax
+        jnz     @@finish
+
+        xor     ax, ax
+        call    set_sound_freq
+        call    sound_off
+
+@@finish:
+        pop     ax
+        ret
+update_short_sound endp
 
 
 next_note proc c near uses ax bx cx si ds
@@ -174,7 +218,7 @@ next_note proc c near uses ax bx cx si ds
         lodsw
 
         cmp     ax, 0ffffh
-        je      @@player_restart
+        je      @@music_restart
 
         mov     cs:duration, ax
 
@@ -195,7 +239,7 @@ next_note proc c near uses ax bx cx si ds
         mov     cs:note, si
         jmp     @@finish
 
-@@player_restart:
+@@music_restart:
         mov     cs:duration, 0
         mov     cs:note, offset zelda
 

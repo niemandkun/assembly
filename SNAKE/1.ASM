@@ -24,18 +24,23 @@ state_game:     ; offsets of handlers for each command
         dw      com_right,  offset key_right
         dw      com_left,   offset key_left
         dw      com_down,   offset key_down
-        dw      com_tick,   offset on_tick
+        dw      com_tick,   offset game_tick
         dw      com_faster, offset speed_up
         dw      com_slower, offset speed_down
         dw      0FFFFh
 
 state_pause:
-        dw      com_exit,   offset exit
-        dw      com_tick,   offset pause_tick
+        dw      com_exit,   offset gameover
+        dw      com_tick,   offset menu_tick
         dw      com_start,  offset continue
         dw      0FFFFh
 
-state   dw      offset state_game
+state_gameover:
+        dw      com_exit,   offset exit
+        dw      com_tick,   offset menu_tick
+        dw      0FFFFh
+
+state   dw      offset state_pause
 
 start:
         call    parse_args
@@ -45,10 +50,11 @@ start:
         mov     es, ax
 
         call    setup_vector
-        call    start_player
         call    init_random
         call    init_model
         call    enable_graphics
+        call    setup_sys_timer
+        call    start_music
 
 @@1:
         hlt
@@ -73,7 +79,8 @@ start:
 ;       handlers:
 
 exit:
-        call    stop_player
+        call    stop_music
+        call    reset_sys_timer
         call    restore_vector
         call    disable_graphics
         mov     ah, 4ch
@@ -82,9 +89,33 @@ exit:
 ticks dw 0
 update_interval dw 10h
 
-on_tick:
+pause:
+        mov     state, offset state_pause
+        call    clear_screen
+        call    push_buffer
+        ret
+
+continue:
+        call    stop_music
+        mov     state, offset state_game
+        call    clear_screen
+        call    push_buffer
+        ret
+
+gameover:
+        call    start_music
+        mov     state, offset state_gameover
+        call    clear_screen
+        call    push_buffer
+        ret
+
+menu_tick:
+        call    update_sound
+        ret
+
+game_tick:
         push    ax
-        call    update_player
+        call    update_sound
 
         inc     ticks
         mov     ax, update_interval
@@ -133,22 +164,6 @@ speed_down:
         jle     @@finish
         mov     update_interval, 10h
 @@finish:
-        ret
-
-pause:
-        mov     state, offset state_pause
-        call    clear_screen
-        call    push_buffer
-        ret
-
-pause_tick:
-        call    update_player
-        ret
-
-continue:
-        mov     state, offset state_game
-        call    clear_screen
-        call    push_buffer
         ret
 
 text ends

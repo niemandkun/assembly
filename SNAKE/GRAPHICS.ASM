@@ -29,19 +29,20 @@ draw_head:
         mov     ax, offset draw_snake
         ret
 
+draw_apple:
+        mov     cl, apple_color
+        call    fill_tile
+        mov     ax, offset draw_apple
+        ret
+
 draw_snake:
         mov     cl, snake_color
-        jmp     draw_once
+        call    fill_tile
+        mov     ax, offset draw_snake
+        ret
 
 draw_empty:
         mov     cl, field_color
-        jmp     draw_once
-
-draw_apple:
-        mov     cl, apple_color
-        jmp     draw_once
-
-draw_once:
         call    fill_tile
         xor     ax, ax
         ret
@@ -63,6 +64,7 @@ enable_graphics   proc
         int     10h
 
         call    clear_screen
+        call    push_buffer
 
         pop     ax
         pop     es
