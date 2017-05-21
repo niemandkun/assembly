@@ -38,7 +38,11 @@ snake_head_y dw snake_start_y
 snake_head_ptr dw offset snake
 snake_tail_ptr dw offset snake
 
+head_tile_ptr dw 0
+
 items_count dw 10
+
+snake_collision_handler dw offset cut_snake
 
 items:
     dw offset draw_apple, offset collide_apple
@@ -78,6 +82,9 @@ init_model      proc c near uses ax bx cx dx es
         mov     bx, snake_head_y
 
         call    get_tile_ptr
+        mov     es:[bx].@draw_proc, offset draw_head
+
+        mov     head_tile_ptr, bx
         mov     dx, bx
         ; pointer in DX now
 
@@ -114,6 +121,9 @@ spawn_item      proc c near uses ax bx cx si
         call    random_get      ; column in AX
 
         call    get_tile_ptr    ; ptr to tile in BX
+
+        cmp     bx, head_tile_ptr
+        je      @@cycle
 
         cmp     es:[bx].@collision_proc, 0
         jne     @@cycle
@@ -220,12 +230,20 @@ move_head       proc c near uses ax bx
 
         call    get_tile_ptr
         ; got ptr to new snake head in BX
+        mov     head_tile_ptr, bx
 
+        ; update head tile draw func and snake counter
         mov     es:[bx].@draw_proc, offset draw_head
-        inc     es:[bx].@snake
 
         mov     dx, bx
         ; ptr to new head is in DX now
+
+        ; install collision handler for old head tile
+        mov     ax, snake_collision_handler
+        mov     bx, snake_head_ptr
+        mov     bx, es:[bx]
+        mov     es:[bx].@collision_proc, ax
+        inc     es:[bx].@snake
 
         ; create pointer to new head
         mov     bx, snake_head_ptr
@@ -260,7 +278,12 @@ move_tail       proc c near uses ax bx
         ; pointer to tile in BX
 
         dec     es:[bx].@snake
-        jne     @@is_not_empty
+        jg      @@is_not_empty
+
+        mov     es:[bx].@collision_proc, 0
+
+        cmp     bx, head_tile_ptr
+        je      @@is_not_empty
 
         mov     es:[bx].@draw_proc, offset draw_empty
 
@@ -415,6 +438,10 @@ collide_portal_wall proc c near uses ax bx cx si
         ; AX = column
         ; BX = row
 
+        cmp     velocity_y, 0
+        je      @@2
+
+        ; hack to deal with vertical teleportation
         cmp     bx, 15
         jne     @@1
         mov     bx, 4
@@ -436,11 +463,46 @@ collide_portal_wall proc c near uses ax bx cx si
         mov     es:[si], bx
 
         mov     es:[bx].@draw_proc, offset draw_head
-        inc     es:[bx].@snake
 
 @@finish:
         ret
 collide_portal_wall endp
+
+
+cut_snake       proc c near uses bx dx si
+        mov     dx, bx
+        ; pointer to collision tile in DX
+
+        ;cmp     es:[bx].@snake, 0
+        ;je      @@return
+
+        mov     bx, snake_tail_ptr
+
+@@cycle:
+        mov     si, es:[bx]
+        ; pointer to tile in SI
+
+        dec     es:[si].@snake
+        jg      @@1
+
+        mov     es:[si].@collision_proc, 0
+
+        cmp     si, head_tile_ptr
+        je      @@1
+
+        mov     es:[si].@draw_proc, offset draw_empty
+
+@@1:
+        add     bx, 2
+        cmp     si, dx
+        je      @@finish
+        jmp     @@cycle
+
+@@finish:
+        mov     snake_tail_ptr, bx
+@@return:
+        ret
+cut_snake       endp
 
 
 get_tile_ptr    proc near
