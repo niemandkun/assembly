@@ -38,6 +38,31 @@ snake_head_y dw snake_start_y
 
 snake_tail_ptr dw (snake_start_x + snake_start_y * field_width) * size_of_tile
 
+items_count dw 10
+
+
+init_model      proc c near uses ax bx cx es
+        mov     ax, tiles
+        mov     es, ax
+
+        mov     cx, items_count
+@@cycle:
+        mov     ax, field_height
+        call    random_get
+        mov     bx, ax          ; row in BX
+        mov     ax, field_width
+        call    random_get      ; column in AX
+
+        call    get_tile_ptr
+        mov     es:[bx].@bonus, 1
+        mov     es:[bx].@draw_proc, offset draw_apple
+
+        dec     cx
+        jnz     @@cycle
+
+        ret
+init_model      endp
+
 
 update_model    proc c near uses ax bx es
         mov     ax, tiles

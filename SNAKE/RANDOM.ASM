@@ -11,7 +11,22 @@ init_random proc c near uses ax cx dx
         ret
 init_random endp
 
-get_random proc c near uses bx cx dx
+
+random_get proc c near uses bx dx
+        ; args:
+        ;       AX = upper exclusive bound
+        ; ret:
+        ;       random number in AX
+        mov     bx, ax
+        call    random_next
+        xor     dx, dx
+        div     bx
+        mov     ax, dx
+        ret
+random_get endp
+
+
+random_next proc c near uses bx cx dx
         ; args:
         ;       none
         ; ret:
@@ -31,7 +46,7 @@ get_random proc c near uses bx cx dx
         mov     random_seed, ax
 
         ret
-get_random endp
+random_next endp
 
 random_seed dw ?
 

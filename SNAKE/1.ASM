@@ -13,6 +13,7 @@ include sound.asm
 include zelda.asm
 include model.asm
 include graphics.asm
+include random.asm
 
 text segment
         assume  cs:text, ds:text, es:text
@@ -45,6 +46,8 @@ start:
 
         call    setup_vector
         call    start_player
+        call    init_random
+        call    init_model
         call    enable_graphics
 
 @@1:

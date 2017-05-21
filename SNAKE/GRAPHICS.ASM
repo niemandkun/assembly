@@ -20,6 +20,7 @@ old_mode db ?
 snake_color = 15h
 head_color = 17h
 field_color = 5Bh
+apple_color = 02h
 
 
 draw_snake:
@@ -38,6 +39,13 @@ draw_head:
 draw_empty:
         mov     [si].@draw_proc, 0
         mov     cl, field_color
+        call    fill_tile
+        ret
+
+
+draw_apple:
+        mov     [si].@draw_proc, 0
+        mov     cl, apple_color
         call    fill_tile
         ret
 
