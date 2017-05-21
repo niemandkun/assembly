@@ -162,9 +162,10 @@ process_parameter proc c near uses bx cx si di
         mov     bx, cs:[bx].@ptr
         push    bx
         call    parse_int
-        add     sp, 2
+        pop     bx
 
-        ; TODO: handle parameter
+        jc      @@invalid
+        mov     cs:delta_length, ax
 
         mov     ax, 2
         jmp     @@finish
@@ -180,9 +181,10 @@ process_parameter proc c near uses bx cx si di
         mov     bx, cs:[bx].@ptr
         push    bx
         call    parse_int
-        add     sp, 2
+        pop     bx
 
-        ; TODO: handle parameter
+        jc      @@invalid
+        mov     cs:items_count, ax
 
         mov     ax, 2
         jmp     @@finish

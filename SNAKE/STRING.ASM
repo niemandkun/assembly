@@ -43,6 +43,7 @@ parse_int proc c near uses bx cx si
         xchg    ax, bx
 
         add     bx, ax
+        jmp     @@cycle
 
 @@finish:
         mov     ax, bx
