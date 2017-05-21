@@ -310,11 +310,12 @@ move_tail       endp
 rotate_snake    proc c near uses ax bx si di
         mov     bx, snake_tail_ptr
         mov     bx, es:[bx]
-        ;mov     es:[bx].@draw_proc, offset draw_head
+        dec     es:[bx].@snake
 
         mov     bx, snake_head_ptr
         mov     bx, es:[bx]
         mov     es:[bx].@draw_proc, offset draw_snake
+        inc     es:[bx].@snake
 
         mov     si, snake_head_ptr
         mov     di, snake_tail_ptr
