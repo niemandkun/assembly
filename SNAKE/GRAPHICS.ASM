@@ -23,31 +23,27 @@ field_color = 5Bh
 apple_color = 02h
 
 
-draw_snake:
-        mov     [si].@draw_proc, 0
-        mov     cl, snake_color
-        call    fill_tile
-        ret
-
-
 draw_head:
-        mov     [si].@draw_proc, offset draw_snake
         mov     cl, head_color
         call    fill_tile
+        mov     ax, offset draw_snake
         ret
 
+draw_snake:
+        mov     cl, snake_color
+        jmp     draw_once
 
 draw_empty:
-        mov     [si].@draw_proc, 0
         mov     cl, field_color
-        call    fill_tile
-        ret
-
+        jmp     draw_once
 
 draw_apple:
-        mov     [si].@draw_proc, 0
         mov     cl, apple_color
+        jmp     draw_once
+
+draw_once:
         call    fill_tile
+        xor     ax, ax
         ret
 
 
@@ -133,7 +129,7 @@ draw_tiles      proc c near uses ax bx cx si ds es
 draw_tiles      endp
 
 
-draw_tile       proc c near uses cx
+draw_tile       proc c near uses ax cx
         ; args:
         ;       es - buffer segment
         ;       ax - most left column
@@ -145,6 +141,7 @@ draw_tile       proc c near uses cx
         test    cx, cx
         jz      @@finish
         call    cx
+        mov     [si].@draw_proc, ax
 @@finish:
         ret
 draw_tile       endp
