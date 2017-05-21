@@ -17,8 +17,8 @@ include graphics.asm
 text segment
         assume  cs:text, ds:text, es:text
 
-handler:        ; offsets of handlers for each command
-        dw      com_exit,   offset exit
+state_game:     ; offsets of handlers for each command
+        dw      com_exit,   offset pause
         dw      com_up,     offset key_up
         dw      com_right,  offset key_right
         dw      com_left,   offset key_left
@@ -27,6 +27,14 @@ handler:        ; offsets of handlers for each command
         dw      com_faster, offset speed_up
         dw      com_slower, offset speed_down
         dw      0FFFFh
+
+state_pause:
+        dw      com_exit,   offset exit
+        dw      com_tick,   offset pause_tick
+        dw      com_start,  offset continue
+        dw      0FFFFh
+
+state   dw      offset state_game
 
 start:
         call    parse_args
@@ -43,7 +51,7 @@ start:
         hlt
         call    ring_buffer_read
         jc      @@1
-        mov     si, offset handler
+        mov     si, state
         xor     ah, ah
         mov     bx, ax
 @@2:
@@ -58,7 +66,6 @@ start:
         lodsw
         call    ax
         jmp     @@1
-
 
 ;       handlers:
 
@@ -123,6 +130,22 @@ speed_down:
         jle     @@finish
         mov     update_interval, 10h
 @@finish:
+        ret
+
+pause:
+        mov     state, offset state_pause
+        call    clear_screen
+        call    push_buffer
+        ret
+
+pause_tick:
+        call    update_player
+        ret
+
+continue:
+        mov     state, offset state_game
+        call    clear_screen
+        call    push_buffer
         ret
 
 text ends
