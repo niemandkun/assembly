@@ -1,12 +1,11 @@
 tiles segment
 
-size_of_tile = 8
+size_of_tile = 6
 
 Tile struc
     @snake dw 0
-    @bonus dw 0
-    @wall dw 0
     @draw_proc dw 0
+    @collision_proc dw 0
 Tile ends
 
 Tile 640 dup(?)
@@ -70,7 +69,7 @@ init_model      proc c near uses ax bx cx dx es
         call    random_get      ; column in AX
 
         call    get_tile_ptr
-        mov     es:[bx].@bonus, 1
+        mov     es:[bx].@collision_proc, offset collide_apple
         mov     es:[bx].@draw_proc, offset draw_apple
 
         dec     cx
@@ -86,6 +85,7 @@ update_model    proc c near uses ax bx es
 
         call    move_head
         call    move_tail
+        call    check_collision
         ret
 update_model    endp
 
@@ -162,6 +162,34 @@ move_tail       proc c near uses ax bx
 @@finish:
         ret
 move_tail       endp
+
+
+check_collision proc near
+        push    bx
+        push    ax
+
+        mov     bx, snake_head_ptr
+        mov     bx, es:[bx]
+        ; got pointer to head tile in bx
+
+        mov     bx, es:[bx].@collision_proc
+        test    bx, bx
+        jz      @@finish
+        call    bx
+        mov     es:[bx].@collision_proc, ax
+
+@@finish:
+        pop     ax
+        pop     bx
+        ret
+check_collision endp
+
+
+collide_apple   proc near
+        inc     delta_length
+        xor     ax, ax
+        ret
+collide_apple   endp
 
 
 get_tile_ptr    proc near
