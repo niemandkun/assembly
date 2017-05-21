@@ -118,11 +118,10 @@ duration dw 0
 
 
 start_music proc c near uses ax
-        xor     ax, ax
-        call    set_sound_freq
-        call    sound_on
         mov     note, offset zelda
         mov     music_on, 1
+        call    update_sound
+        call    sound_on
         ret
 start_music endp
 
@@ -171,7 +170,7 @@ stop_music proc c near uses ax
 stop_music endp
 
 
-default_duration = 7
+default_duration = 4
 short_sound_duration dw 0
 
 

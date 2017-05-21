@@ -187,6 +187,8 @@ check_collision endp
 
 collide_apple   proc near
         inc     delta_length
+        mov     ax, com_sound
+        call    ring_buffer_write
         xor     ax, ax
         ret
 collide_apple   endp

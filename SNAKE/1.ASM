@@ -27,6 +27,7 @@ state_game:     ; offsets of handlers for each command
         dw      com_tick,   offset game_tick
         dw      com_faster, offset speed_up
         dw      com_slower, offset speed_down
+        dw      com_sound,  offset on_sound
         dw      0FFFFh
 
 state_pause:
@@ -86,8 +87,11 @@ exit:
         mov     ah, 4ch
         int     21h
 
-ticks dw 0
-update_interval dw 10h
+logic_ticks dw 0
+fixed_ticks dw 0
+
+fixed_upd = 10h
+logic_upd dw fixed_upd
 
 pause:
         mov     state, offset state_pause
@@ -100,6 +104,8 @@ continue:
         mov     state, offset state_game
         call    clear_screen
         call    push_buffer
+        mov     logic_ticks, 0
+        mov     fixed_ticks, 0
         ret
 
 gameover:
@@ -116,17 +122,28 @@ menu_tick:
 game_tick:
         push    ax
         call    update_sound
-
-        inc     ticks
-        mov     ax, update_interval
-        cmp     ticks, ax
-        jl      @@finish
-
+        cmp     logic_ticks, 0
+        jge     @@fixed_update
+        mov     ax, logic_upd
+        mov     logic_ticks, ax
         call    update_model
         call    draw_scene
-        mov     ticks, 0
-
+@@fixed_update:
+        cmp     fixed_ticks, 0
+        jge     @@finish
+        mov     fixed_ticks, fixed_upd
+        mov     ax, 1000h
+        call    play_short_sound
 @@finish:
+        dec     logic_ticks
+        dec     fixed_ticks
+        pop     ax
+        ret
+
+on_sound:
+        push    ax
+        mov     ax, 2000h
+        call    play_short_sound
         pop     ax
         ret
 
@@ -151,18 +168,18 @@ key_right:
         ret
 
 speed_up:
-        dec     update_interval
-        cmp     update_interval, 0
+        dec     logic_upd
+        cmp     logic_upd, 0
         jg      @@finish
-        mov     update_interval, 1
+        mov     logic_upd, 1
 @@finish:
         ret
 
 speed_down:
-        inc     update_interval
-        cmp     update_interval, 10h
+        inc     logic_upd
+        cmp     logic_upd, 10h
         jle     @@finish
-        mov     update_interval, 10h
+        mov     logic_upd, 10h
 @@finish:
         ret
 

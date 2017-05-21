@@ -7,3 +7,4 @@ com_tick    equ 5
 com_faster  equ 6
 com_slower  equ 7
 com_start   equ 8
+com_sound   equ 9
