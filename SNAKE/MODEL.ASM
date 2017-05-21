@@ -42,7 +42,10 @@ items_count dw 10
 
 items:
     dw offset draw_apple, offset collide_apple
+    dw offset draw_apple, offset collide_apple
+    dw offset draw_apple, offset collide_apple
     dw offset draw_bad_apple, offset collide_bad_apple
+    dw offset draw_poison, offset collide_poison
     dw offset draw_poison, offset collide_poison
 
 init_model      proc c near uses ax bx cx dx es
@@ -64,7 +67,7 @@ init_model      proc c near uses ax bx cx dx es
         mov     cx, items_count
 
 @@cycle:
-        mov     ax, 3
+        mov     ax, 6
         call    spawn_item
         dec     cx
         jnz     @@cycle
@@ -224,7 +227,7 @@ check_collision endp
 
 collide_apple   proc near
         inc     delta_length
-        mov     ax, 2
+        mov     ax, 4
         call    spawn_item
         xor     ax, ax
         ret
@@ -242,7 +245,7 @@ collide_bad_apple proc near
         call    ring_buffer_write
 
 @@finish:
-        mov     ax, 2
+        mov     ax, 4
         call    spawn_item
         xor     ax, ax
         ret
