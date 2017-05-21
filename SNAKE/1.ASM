@@ -14,6 +14,7 @@ include zelda.asm
 include model.asm
 include graphics.asm
 include random.asm
+include bitmaps.asm
 
 text segment
         assume  cs:text, ds:text, es:text
@@ -133,7 +134,7 @@ game_tick:
         cmp     fixed_ticks, 0
         jge     @@finish
         mov     fixed_ticks, fixed_upd
-        mov     ax, 1000h
+        mov     ax, 6000h
         call    play_short_sound
 @@finish:
         dec     logic_ticks
