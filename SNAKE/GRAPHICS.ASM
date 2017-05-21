@@ -31,6 +31,7 @@ draw_snake:
 
 
 draw_head:
+        mov     [si].@draw_proc, offset draw_snake
         mov     cl, head_color
         call    fill_tile
         ret

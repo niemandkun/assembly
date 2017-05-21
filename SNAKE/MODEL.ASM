@@ -1,24 +1,27 @@
 tiles segment
 
+size_of_tile = 8
+
 Tile struc
-    @snake_next dw 0
+    @snake dw 0
     @bonus dw 0
     @wall dw 0
     @draw_proc dw 0
 Tile ends
 
-size_of_tile = 8
-
 Tile 640 dup(?)
-
 tiles_end_ex = $
+
+snake   dw  640 dup(?)
+snake_end_ex = $
+
+tiles ends
+
 
 field_width = 32
 field_height = 20
 
 head_of_snake = 0ffffh
-
-tiles ends
 
 
 text segment
@@ -36,15 +39,28 @@ snake_start_y = 15
 snake_head_x dw snake_start_x
 snake_head_y dw snake_start_y
 
-snake_tail_ptr dw (snake_start_x + snake_start_y * field_width) * size_of_tile
+snake_head_ptr dw offset snake
+snake_tail_ptr dw offset snake
 
 items_count dw 10
 
 
-init_model      proc c near uses ax bx cx es
+init_model      proc c near uses ax bx cx dx es
         mov     ax, tiles
         mov     es, ax
 
+        ; set pointer to tile with snake head in snake array
+        mov     ax, snake_head_x
+        mov     bx, snake_head_y
+
+        call    get_tile_ptr
+        mov     dx, bx
+        ; pointer in DX now
+
+        mov     bx, snake_head_ptr
+        mov     es:[bx], dx
+
+        ; spawn initial items
         mov     cx, items_count
 @@cycle:
         mov     ax, field_height
@@ -78,9 +94,6 @@ move_head       proc c near uses ax bx
         mov     ax, snake_head_x
         mov     bx, snake_head_y
 
-        mov     cx, ax  ; CX = old x
-        mov     dx, bx  ; DX = old y
-
         add     ax, velocity_x
         add     bx, velocity_y
 
@@ -92,18 +105,25 @@ move_head       proc c near uses ax bx
         call    get_tile_ptr
         ; got ptr to new snake head in BX
 
-        mov     es:[bx].@snake_next, head_of_snake
         mov     es:[bx].@draw_proc, offset draw_head
+        inc     es:[bx].@snake
 
-        xchg    ax, cx
-        xchg    bx, dx
+        mov     dx, bx
         ; ptr to new head is in DX now
 
-        call    get_tile_ptr
-        ; got ptr to old snake head in BX
+        ; create pointer to new head
+        mov     bx, snake_head_ptr
+        add     bx, 2
+        cmp     bx, offset snake_end_ex
+        jne     @@write_head_ptr
 
-        mov     es:[bx].@snake_next, dx
-        mov     es:[bx].@draw_proc, offset draw_snake
+        mov     bx, offset snake
+
+@@write_head_ptr:
+        ; write pointer to new head into the new cell
+        mov     es:[bx], dx
+        mov     snake_head_ptr, bx
+
         ret
 move_head       endp
 
@@ -120,10 +140,24 @@ move_tail       proc c near uses ax bx
 
 @@do_move_tail:
         mov     bx, snake_tail_ptr
-        mov     ax, es:[bx].@snake_next
-        mov     snake_tail_ptr, ax
-        mov     es:[bx].@snake_next, 0
+        mov     bx, es:[bx]
+        ; pointer to tile in BX
+
+        dec     es:[bx].@snake
+        jne     @@is_not_empty
+
         mov     es:[bx].@draw_proc, offset draw_empty
+
+@@is_not_empty:
+        mov     bx, snake_tail_ptr
+        add     bx, 2
+        cmp     bx, offset snake_end_ex
+        jne     @@write_tail_ptr
+
+        mov     bx, offset snake
+
+@@write_tail_ptr:
+        mov     snake_tail_ptr, bx
 
 @@finish:
         ret
