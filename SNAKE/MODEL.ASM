@@ -415,12 +415,15 @@ collide_rubber_wall proc near
         call    move_head
         call    move_tail
         mov     es:[bx].@draw_proc, offset draw_rubber_wall
+        mov     es:[bx].@collision_proc, offset collide_rubber_wall
+        mov     es:[bx].@snake, 0
         ret
 collide_rubber_wall endp
 
 
 collide_portal_wall proc c near uses ax bx cx si
         mov     es:[bx].@draw_proc, offset draw_portal_wall
+        mov     es:[bx].@collision_proc, offset collide_portal_wall
         mov     es:[bx].@snake, 0
 
         mov     ax, bx
