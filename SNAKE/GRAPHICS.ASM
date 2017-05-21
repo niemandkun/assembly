@@ -17,8 +17,8 @@ old_page db ?
 old_mode db ?
 
 
-snake_color = 15h
-head_color = 17h
+snake_color = 04h
+head_color = 0Ch
 field_color = 5Bh
 apple_color = 02h
 
