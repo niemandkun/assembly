@@ -42,7 +42,7 @@ head_tile_ptr dw 0
 
 items_count dw 10
 
-snake_collision_handler dw offset cut_snake
+snake_collision_handler dw offset collide_deadly_wall
 
 items:
     dw offset draw_apple, offset collide_apple
@@ -96,12 +96,16 @@ init_model      proc c near uses ax bx cx dx es
         ; spawn initial items
         mov     cx, items_count
 
+        test    cx, cx
+        jz      @@finish
+
 @@cycle:
         mov     ax, 6
         call    spawn_item
         dec     cx
         jnz     @@cycle
 
+@@finish:
         ret
 init_model      endp
 

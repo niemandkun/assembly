@@ -106,19 +106,19 @@ store_collision_type proc
 @@death:
         single_flag_cmp death_flag
         jne     @@cut
-        ; TODO: handle parameter
+        mov     cs:snake_collision_handler, offset collide_deadly_wall
         ret
 
 @@cut:
         single_flag_cmp cut_flag
         jne     @@nothing
-        ; TODO: handle parameter
+        mov     cs:snake_collision_handler, offset cut_snake
         ret
 
 @@nothing:
         single_flag_cmp nothing_flag
         jne     @@error
-        ; TODO: handle parameter
+        mov     cs:snake_collision_handler, 0
         ret
 
 @@error:
