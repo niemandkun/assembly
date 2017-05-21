@@ -14,13 +14,10 @@ tiles_end_ex = $
 snake   dw  640 dup(?)
 snake_end_ex = $
 
-tiles ends
-
-
 field_width = 32
 field_height = 20
 
-head_of_snake = 0ffffh
+tiles ends
 
 
 text segment
@@ -65,19 +62,10 @@ init_model      proc c near uses ax bx cx dx es
 
         ; spawn initial items
         mov     cx, items_count
+
 @@cycle:
-        ;mov     ax, field_height
-        ;call    random_get
-        ;mov     bx, ax          ; row in BX
-        ;mov     ax, field_width
-        ;call    random_get      ; column in AX
-
-        ;call    get_tile_ptr
-        ;mov     es:[bx].@collision_proc, offset collide_bad_apple
-        ;mov     es:[bx].@draw_proc, offset draw_apple
-
+        mov     ax, 3
         call    spawn_item
-
         dec     cx
         jnz     @@cycle
 
@@ -86,7 +74,12 @@ init_model      endp
 
 
 spawn_item      proc c near uses ax bx cx si
-
+        ; args:
+        ;       AX = count of items to select
+        ; ret:
+        ;       none
+        ;
+        push    ax
 @@cycle:
         mov     ax, field_height
         call    random_get
@@ -102,7 +95,7 @@ spawn_item      proc c near uses ax bx cx si
         cmp     es:[bx].@snake, 0
         jne     @@cycle
 
-        mov     ax, 3
+        pop     ax
         call    random_get
 
         shl     ax, 1
@@ -231,6 +224,8 @@ check_collision endp
 
 collide_apple   proc near
         inc     delta_length
+        mov     ax, 2
+        call    spawn_item
         xor     ax, ax
         ret
 collide_apple   endp
@@ -247,6 +242,8 @@ collide_bad_apple proc near
         call    ring_buffer_write
 
 @@finish:
+        mov     ax, 2
+        call    spawn_item
         xor     ax, ax
         ret
 collide_bad_apple endp
