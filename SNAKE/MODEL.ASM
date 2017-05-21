@@ -202,6 +202,43 @@ move_tail       proc c near uses ax bx
 move_tail       endp
 
 
+rotate_snake    proc c near uses ax bx si di
+        mov     bx, snake_tail_ptr
+        mov     bx, es:[bx]
+        mov     es:[bx].@draw_proc, offset draw_head
+
+        mov     bx, snake_head_ptr
+        mov     bx, es:[bx]
+        mov     es:[bx].@draw_proc, offset draw_snake
+
+        mov     si, snake_head_ptr
+        mov     di, snake_tail_ptr
+
+        mov     ax, es:[di]
+        call    get_coords
+        mov     snake_head_x, ax
+        mov     snake_head_y, bx
+
+        neg     velocity_x
+        neg     velocity_y
+
+@@cycle:
+        mov     ax, es:[si]
+        mov     bx, es:[di]
+
+        mov     es:[si], bx
+        mov     es:[di], ax
+
+        add     di, 2
+        sub     si, 2
+
+        cmp     si, di
+        jg      @@cycle
+
+        ret
+rotate_snake    endp
+
+
 check_collision proc near
         push    bx
         push    ax
@@ -286,6 +323,32 @@ get_tile_ptr    proc near
         pop     cx
         ret
 get_tile_ptr    endp
+
+
+get_coords      proc near
+        ; args:
+        ;       ax - ptr to tile struct
+        ; ret:
+        ;       ax - column
+        ;       bx - row
+        push    cx
+        push    dx
+
+        xor     dx, dx
+        mov     cx, size_of_tile
+        div     cx
+
+        xor     dx, dx
+        mov     cx, field_width
+        div     cx
+
+        mov     bx, ax
+        mov     ax, dx
+
+        pop     dx
+        pop     cx
+        ret
+get_coords      endp
 
 
 torus_cycle     proc
