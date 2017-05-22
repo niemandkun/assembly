@@ -110,12 +110,21 @@ continue:
         mov     fixed_ticks, 0
         ret
 
+tst db "Test $"
+
 gameover:
         call    start_music
         mov     state, offset state_gameover
         call    clear_screen
+
+        mov     ax, 1
+        mov     bx, 1
+        mov     si, offset tst
+        call    draw_string
         call    push_buffer
+
         ret
+
 
 menu_tick:
         call    update_sound

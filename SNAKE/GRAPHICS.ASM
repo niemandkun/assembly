@@ -283,6 +283,77 @@ draw_bitmap     proc c near uses ax bx cx dx si di ds
 draw_bitmap     endp
 
 
+draw_string    proc c near uses ax cx si
+        ; args:
+        ;       AX = column
+        ;       BX = row
+        ;       DS:SI = string ptr
+        ; ret:
+        ;       none
+@@1:
+        mov     ch, ds:[si]
+        cmp     ch, '$'
+        je      @@2
+        call    draw_char
+        add     ax, 8
+        inc     si
+        jmp     @@1
+@@2:
+        ret
+draw_string    endp
+
+
+draw_char       proc c near uses ax bx cx si di ds es
+        ; args:
+        ;       AX = row
+        ;       BX = column
+        ;       CH = character to write
+        ; ret:
+        ;       none
+        call    get_pixel_addr
+        mov     di, bx
+
+        mov     ax, 0f000h
+        mov     ds, ax
+
+        mov     ax, buffer_segment
+        mov     es, ax
+
+        mov     cl, ch
+        xor     ch, ch
+        mov     ax, cx
+        mov     cl, 3
+        shl     ax, cl
+
+        mov     si, 0fa6eh
+        add     si, ax
+
+        mov     bl, 13h
+        mov     cx, 8
+@@2:
+        lodsb
+        mov     ah, 80h
+@@1:
+        test    al, ah
+        jz      @@continue
+
+        mov     es:[di], bl
+
+@@continue:
+        inc     di
+        shr     ah, 1
+
+        test    ah, ah
+        jnz     @@1
+
+        add     di, 320 - 8
+        dec     cx
+        jnz     @@2
+
+        ret
+draw_char       endp
+
+
 clear_screen    proc
         push    es
 
