@@ -211,26 +211,17 @@ print_usage_and_exit endp
 
 
 help db                                                                                0Ah
-     db "Usage: 2.COM [/N] [/M MODE] [/P PAGE] [/C COLOR] [/LL LASTLINE] [/?]",        0Ah
+     db "Usage: SNAKE.EXE [/L LENGTH] [/I COUNT] [/C TYPE] [/?]",                      0Ah
      db                                                                                0Ah
-     db "Print fullscreen ASCII-table and exit by pressing any key.",                  0Ah
+     db "Play classic snake game.",                                                    0Ah
      db                                                                                0Ah
      db "Parameters:",                                                                 0Ah
-     db "    /N, /NOBLINK   - Disable blinking",                                       0Ah
-     db "    /M, /MODE      - Video mode to use (default 3)",                          0Ah
-     db "    /P, /PAGE      - Video page to use (default 0)",                          0Ah
-     db "    /C, /CAPTION   - Set color for caption",                                  0Ah
-     db "    /LL, /LASTLINE - Set output mode for last line in mode 7h",               0Ah
-     db "                     possible values: BRIGHT, BLINK, REVERSED, BRIGHTBLINK",  0Ah
+     db "    /L, /LENGTH    - Initial snake length, default is 5",                     0Ah
+     db "    /I, /ITEMS     - Number of bonus items to spawn, default is 10",          0Ah
+     db "    /C, /COLLISION - Action to do, when snake collides with itself",          0Ah
+     db "                     possible values: DEATH, CUT, NOTHING",                   0Ah
      db                                                                                0Ah
      db "    /?, /HELP      - Show this help message and exit",                        0Ah
-     db                                                                                0Ah
-     db "    Mode   Valid Pages",                                                      0Ah
-     db "      0       0 - 7   ",                                                      0Ah
-     db "      1       0 - 7   ",                                                      0Ah
-     db "      2       0 - 3   ",                                                      0Ah
-     db "      3       0 - 3   ",                                                      0Ah
-     db "      7         0     ",                                                      0Ah
      db                                                                                24h
 
 
