@@ -49,6 +49,8 @@ bad_apples_counter dw 0
 rubber_wall_counter dw 0
 portal_wall_counter dw 0
 
+max_length dw 0
+
 apple_scores = 10
 bad_apple_scores = 5
 
@@ -283,7 +285,13 @@ move_tail       proc c near uses ax bx
 
         dec     ax
         mov     delta_length, ax
-        inc     snake_length
+        mov     ax, snake_length
+        inc     ax
+        cmp     ax, max_length
+        jle     @@1
+        mov     max_length, ax
+@@1:
+        mov     snake_length, ax
         jmp     @@finish
 
 @@do_move_tail:
@@ -393,6 +401,7 @@ collide_bad_apple proc near
         add     scores, bad_apple_scores
 
         call    move_tail
+        dec     snake_length
 
         mov     ax, snake_head_ptr
         cmp     ax, snake_tail_ptr
@@ -505,6 +514,7 @@ cut_snake       proc c near uses bx dx si
         mov     bx, snake_tail_ptr
 
 @@cycle:
+        dec     snake_length
         mov     si, es:[bx]
         ; pointer to tile in SI
 

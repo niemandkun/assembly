@@ -32,6 +32,12 @@ state_game:     ; offsets of handlers for each command
         dw      com_gameover,   offset gameover
         dw      0FFFFh
 
+state_main:
+        dw      com_exit,       offset exit
+        dw      com_tick,       offset menu_tick
+        dw      com_start,      offset continue
+        dw      0FFFFh
+
 state_pause:
         dw      com_exit,       offset gameover
         dw      com_tick,       offset menu_tick
@@ -43,7 +49,7 @@ state_gameover:
         dw      com_tick,       offset menu_tick
         dw      0FFFFh
 
-state   dw      offset state_pause
+state   dw      offset state_main
 
 start:
         call    parse_args
@@ -58,6 +64,9 @@ start:
         call    enable_graphics
         call    setup_sys_timer
         call    start_music
+
+        call    show_help
+        call    push_buffer
 
 @@1:
         hlt
@@ -95,10 +104,32 @@ fixed_ticks dw 0
 fixed_upd = 10h
 logic_upd dw fixed_upd
 
+pause_str       db "PAUSED", 24h
+pause_help_str  db "RETURN - continue  ESC - exit", 24h
+
 pause:
+        push    ax
+        push    bx
+        push    si
+
         mov     state, offset state_pause
         call    clear_screen
+
+        mov     ax, 136
+        mov     bx, 80
+        mov     si, offset pause_str
+        call    draw_string
+
+        mov     ax, 40
+        mov     bx, 100
+        mov     si, offset pause_help_str
+        call    draw_string
+
         call    push_buffer
+
+        pop     si
+        pop     bx
+        pop     ax
         ret
 
 continue:
@@ -110,19 +141,59 @@ continue:
         mov     fixed_ticks, 0
         ret
 
-tst db "Test $"
+
+game_over_str   db "GAME OVER",         24h
+scores_str      db "Total Scores:",     24h
+apples_str      db "Apples:",           24h
+bad_apples_str  db "Bad Apples:",       24h
+
+ricochets_str   db "Ricochets:",        24h
+teleport_str    db "Teleportations:",   24h
+
+length_str      db "Snake Length:",     24h
+max_length_str  db "Maximal Length:",   24h
+
+results_table:
+        dw      offset scores_str,      offset scores
+        dw      offset length_str,      offset snake_length
+        dw      offset max_length_str,  offset max_length
+        dw      offset apples_str,      offset apples_counter
+        dw      offset bad_apples_str,  offset bad_apples_counter
+        dw      offset ricochets_str,   offset rubber_wall_counter
+        dw      offset teleport_str,    offset portal_wall_counter
+        dw      0FFFFh
 
 gameover:
         call    start_music
         mov     state, offset state_gameover
         call    clear_screen
 
-        mov     ax, 1
-        mov     bx, 1
-        mov     si, offset tst
+        mov     ax, 124 ; column
+        mov     bx, 20 ; row
+        mov     si, offset game_over_str
         call    draw_string
-        call    push_buffer
 
+        mov     di, offset results_table
+        mov     bx, 40
+
+@@cycle:
+        mov     si, [di]
+        cmp     si, 0FFFFh
+        je      @@finish
+
+        mov     ax, 20
+        call    draw_string
+
+        mov     si, [di+2]
+        mov     ax, 252
+        mov     cx, [si]
+        call    draw_number
+        add     di, 4
+        add     bx, 20
+        jmp     @@cycle
+
+@@finish:
+        call    push_buffer
         ret
 
 
@@ -132,6 +203,8 @@ menu_tick:
 
 game_tick:
         push    ax
+        push    bx
+        push    cx
         call    update_sound
         cmp     logic_ticks, 0
         jge     @@fixed_update
@@ -139,6 +212,10 @@ game_tick:
         mov     logic_ticks, ax
         call    update_model
         call    draw_scene
+        mov     ax, 2
+        mov     bx, 2
+        mov     cx, scores
+        call    draw_number
 @@fixed_update:
         cmp     fixed_ticks, 0
         jge     @@finish
@@ -148,6 +225,8 @@ game_tick:
 @@finish:
         dec     logic_ticks
         dec     fixed_ticks
+        pop     cx
+        pop     bx
         pop     ax
         ret
 
@@ -192,6 +271,17 @@ speed_down:
         jle     @@finish
         mov     logic_upd, 10h
 @@finish:
+        ret
+
+snake_title     db "SNAKE", 24h
+
+show_help:
+
+        mov     ax, 140
+        mov     bx, 20
+        mov     si, offset snake_title
+        call    draw_string
+
         ret
 
 text ends

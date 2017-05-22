@@ -283,7 +283,7 @@ draw_bitmap     proc c near uses ax bx cx dx si di ds
 draw_bitmap     endp
 
 
-draw_string    proc c near uses ax cx si
+draw_string     proc c near uses ax cx si
         ; args:
         ;       AX = column
         ;       BX = row
@@ -300,13 +300,52 @@ draw_string    proc c near uses ax cx si
         jmp     @@1
 @@2:
         ret
-draw_string    endp
+draw_string     endp
+
+
+draw_number     proc c near uses ax bx cx dx si di
+        ; args:
+        ;       AX = column
+        ;       BX = row
+        ;       CX = number to write
+        ; ret:
+        ;       none
+        mov     si, ax
+        mov     di, bx
+
+        mov     ax, cx
+        mov     bx, 10  ; radix
+        xor     cx, cx  ; counter for characters to print
+
+@@division_loop:
+        xor     dx, dx
+        div     bx
+        push    dx      ; push remainder to stack
+        inc     cx
+        test    ax, ax
+        jnz     @@division_loop
+
+        mov     ax, si  ; row
+        mov     bx, di  ; column
+        mov     dx, cx  ; count of characters
+
+@@print_loop:
+        pop     cx
+        add     cl, 30h
+        xchg    cl, ch
+        call    draw_char
+        add     ax, 8
+        dec     dx
+        jnz     @@print_loop
+
+        ret
+draw_number endp
 
 
 draw_char       proc c near uses ax bx cx si di ds es
         ; args:
-        ;       AX = row
-        ;       BX = column
+        ;       AX = column
+        ;       BX = row
         ;       CH = character to write
         ; ret:
         ;       none
@@ -328,18 +367,23 @@ draw_char       proc c near uses ax bx cx si di ds es
         mov     si, 0fa6eh
         add     si, ax
 
-        mov     bl, 13h
         mov     cx, 8
 @@2:
         lodsb
         mov     ah, 80h
 @@1:
         test    al, ah
-        jz      @@continue
+        jz      @@bg
 
-        mov     es:[di], bl
+        mov     bl, 13h
+        jmp     @@continue
+
+@@bg:
+        mov     bl, 5Bh
 
 @@continue:
+        mov     es:[di], bl
+
         inc     di
         shr     ah, 1
 
