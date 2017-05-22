@@ -20,33 +20,39 @@ text segment
         assume  cs:text, ds:text, es:text
 
 state_game:     ; offsets of handlers for each command
-        dw      com_exit,       offset pause
+        dw      com_tick,       offset game_tick
         dw      com_up,         offset key_up
         dw      com_right,      offset key_right
         dw      com_left,       offset key_left
         dw      com_down,       offset key_down
-        dw      com_tick,       offset game_tick
+        dw      com_sound,      offset on_sound
         dw      com_faster,     offset speed_up
         dw      com_slower,     offset speed_down
-        dw      com_sound,      offset on_sound
+        dw      com_exit,       offset pause
         dw      com_gameover,   offset gameover
         dw      0FFFFh
 
 state_main:
-        dw      com_exit,       offset exit
         dw      com_tick,       offset menu_tick
+        dw      com_exit,       offset exit
         dw      com_start,      offset continue
+        dw      com_help,       offset show_help
         dw      0FFFFh
 
 state_pause:
-        dw      com_exit,       offset gameover
         dw      com_tick,       offset menu_tick
+        dw      com_exit,       offset gameover
         dw      com_start,      offset continue
         dw      0FFFFh
 
-state_gameover:
-        dw      com_exit,       offset exit
+state_help:
         dw      com_tick,       offset menu_tick
+        dw      com_exit,       offset show_menu
+        dw      0FFFFh
+
+state_gameover:
+        dw      com_tick,       offset menu_tick
+        dw      com_exit,       offset exit
         dw      0FFFFh
 
 state   dw      offset state_main
@@ -65,8 +71,7 @@ start:
         call    setup_sys_timer
         call    start_music
 
-        call    show_help
-        call    push_buffer
+        call    show_menu
 
 @@1:
         hlt
@@ -185,7 +190,7 @@ gameover:
         call    draw_string
 
         mov     si, [di+2]
-        mov     ax, 252
+        mov     ax, 276
         mov     cx, [si]
         call    draw_number
         add     di, 4
@@ -273,15 +278,115 @@ speed_down:
 @@finish:
         ret
 
-snake_title     db "SNAKE", 24h
+snake_title         db "SNAKE", 24h
+start_game_str      db "Press RETURN Button", 24h
+help_message_str    db "h - help", 24h
 
-show_help:
+show_menu:
+        mov     state, offset state_main
+
+        call    clear_screen
 
         mov     ax, 140
-        mov     bx, 20
+        mov     bx, 60
         mov     si, offset snake_title
         call    draw_string
 
+        mov     ax, 88
+        mov     bx, 100
+        mov     si, offset start_game_str
+        call    draw_string
+
+        mov     ax, 240
+        mov     bx, 180
+        mov     si, offset help_message_str
+        call    draw_string
+
+        call    push_buffer
+
+        ret
+
+items_title         db "ITEMS:", 24h
+
+apple_desc          db "- apple, increase length", 24h
+bad_apple_desc      db "- bad apple, decrease length", 24h
+poison_desc         db "- explosives, death", 24h
+rubber_wall_desc    db "- rubber wall, ricochet", 24h
+portal_wall_desc    db "- portal wall, teleportation", 24h
+deadly_wall_desc    db "- spiked wall, death", 24h
+
+controls_title      db "CONTROLS:", 24h
+arrows_keys         db "ARROWS - control snake", 24h
+speed_keys          db "PLUS/MINUS - adjust speed", 24h
+pause_key           db "ESCAPE - pause", 24h
+
+back_to_menu        db "ESC - back to menu", 24h
+
+items_table:
+        dw offset apple_bitmap, offset apple_desc
+        dw offset bad_apple_bitmap, offset bad_apple_desc
+        dw offset poison_bitmap, offset poison_desc
+        dw offset rubber_wall_bitmap, rubber_wall_desc
+        dw offset portal_wall_bitmap, portal_wall_desc
+        dw offset deadly_wall_bitmap, deadly_wall_desc
+        dw 0FFFFh
+
+show_help:
+        mov     state, offset state_help
+
+        call    clear_screen
+
+        mov     ax, 20
+        mov     bx, 10
+        mov     si, offset items_title
+        call    draw_string
+
+        mov     di, offset items_table
+        add     bx, 14
+
+@@items_draw_cycle:
+        mov     si, [di]
+        cmp     si, 0FFFFh
+        je      @@finish
+
+        mov     ax, 20
+        call    draw_bitmap
+
+        mov     si, [di+2]
+        mov     ax, 40
+        call    draw_string
+        add     di, 4
+        add     bx, 14
+        jmp     @@items_draw_cycle
+
+@@finish:
+
+        mov     ax, 20
+        mov     bx, 120
+        mov     si, offset controls_title
+        call    draw_string
+
+        mov     ax, 20
+        add     bx, 14
+        mov     si, offset arrows_keys
+        call    draw_string
+
+        mov     ax, 20
+        add     bx, 14
+        mov     si, offset speed_keys
+        call    draw_string
+
+        mov     ax, 20
+        add     bx, 14
+        mov     si, offset pause_key
+        call    draw_string
+
+        mov     ax, 150
+        mov     bx, 180
+        mov     si, offset back_to_menu
+        call    draw_string
+
+        call    push_buffer
         ret
 
 text ends

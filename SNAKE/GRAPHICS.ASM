@@ -256,6 +256,9 @@ draw_bitmap     proc c near uses ax bx cx dx si di ds
         mov     ax, cs
         mov     ds, ax
 
+        mov     ax, buffer_segment
+        mov     es, ax
+
         lodsw   ; width
         mov     cx, ax
         lodsw   ; height

@@ -21,6 +21,7 @@ key_commands:
         db      0Ch,    com_slower
         db      0Dh,    com_faster
         db      1Ch,    com_start
+        db      23h,   com_help
         db      0FFh,   0FFh    ; EOT
 
 
