@@ -111,7 +111,7 @@ print_word proc c near uses dx
 
         add     sp, 3 * 2
 
-        call    print_new_line
+        ;call    print_new_line
 
         ret
 
