@@ -42,6 +42,16 @@ head_tile_ptr dw 0
 
 items_count dw 10
 
+scores dw 0
+apples_counter dw 0
+bad_apples_counter dw 0
+
+rubber_wall_counter dw 0
+portal_wall_counter dw 0
+
+apple_scores = 10
+bad_apple_scores = 5
+
 snake_collision_handler dw offset collide_deadly_wall
 
 items:
@@ -369,6 +379,8 @@ check_collision endp
 
 collide_apple   proc near
         inc     delta_length
+        inc     apples_counter
+        add     scores, apple_scores
         mov     ax, 4
         call    spawn_item
         mov     es:[bx].@collision_proc, 0
@@ -377,6 +389,9 @@ collide_apple   endp
 
 
 collide_bad_apple proc near
+        inc     bad_apples_counter
+        add     scores, bad_apple_scores
+
         call    move_tail
 
         mov     ax, snake_head_ptr
@@ -411,6 +426,7 @@ collide_deadly_wall endp
 
 
 collide_rubber_wall proc near
+        inc     rubber_wall_counter
         call    rotate_snake
         call    move_head
         call    move_tail
@@ -422,6 +438,8 @@ collide_rubber_wall endp
 
 
 collide_portal_wall proc c near uses ax bx cx si
+        inc     portal_wall_counter
+
         mov     es:[bx].@draw_proc, offset draw_portal_wall
         mov     es:[bx].@collision_proc, offset collide_portal_wall
         mov     es:[bx].@snake, 0
